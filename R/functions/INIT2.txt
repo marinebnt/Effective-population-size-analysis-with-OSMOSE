@@ -1,0 +1,44 @@
+
+function_INIT2 <- function(outputDir_Simu, outputDir_Ne, dim_vec, species, nb_rep, OUTPUT_data, conf, seeding_y, REPO, TEMPORAL=TRUE, HTZ=FALSE){
+
+  # effective population sizes
+  cat("\n=> prepare osmose data to fit the by-cohort requisites")
+  data_Ne_raw <- estimate_for_Ne(outputDir_Simu, outputDir_Ne, dim_vec, species, nb_rep, OUTPUT_data)
+  cat("\n=> producing Ne data\n")
+  data_Ne <- estimate_Ne(outputDir_Ne = outputDir_Ne, data_Ne_shape = data_Ne_raw, species, 
+                          nb_rep, input_dir=outputDir_Simu, OUTPUT_data)
+  cat("\n=> producing Nb data\n")
+  data_Nb <- estimate_Nb(outputDir_Ne, species, nb_rep, input_dir, OUTPUT_data)
+  
+  tempoNe <- NA
+  if(TEMPORAL) {
+    cat("\n=> producing temporal Ne data\n")
+    tempoNe <- estimate_temporalNe(outputDir_Simu, data_Ne, species, conf, seeding_y, OUTPUT_data)}
+  
+  if(HTZ) {
+    cat("\n=> producing htz data\n")
+    htz_list <- list()
+    for(rep in 1:nb_rep){
+      htz <- NA
+      for (z in species){
+        cat(z)
+        data    <- ncdf4::nc_open(paste0(outputDir_Simu, "/Genetic/ns_observedHtz-", z, "Simu", c(rep-1), ".nc"))
+        data_nc <- ncdf4::ncvar_get(data, "observed_heterozygosity")
+        ncdf4::nc_close(data)
+        if (length(dim(data_nc))==3) {trait1_data <- data_nc[, 1, ] # trait 1 is the neutral trait 
+        }else {trait1_data <- data_nc} 
+        mean_htz <- colMeans(trait1_data)
+        time <- 1:c(dim(trait1_data)[2])
+        if(z==species[1]){
+          htz    <- data.frame(age=time)
+        }
+        htz[z] <- mean_htz
+        dimensions_outputs = dim(OUTPUT_data$biomass)
+        first_y_Ne_tempo <- max(seeding_y, c(years-dimensions_outputs[1]+1))
+        rownames(htz) =  first_y_Ne_tempo:(years)
+      }
+      htz_list[[paste0("rep_", rep)]] <- htz
+    }
+  }
+  return(list("data_Ne_raw"=data_Ne_raw, "data_Ne"=data_Ne, "data_Nb"=data_Nb, "tempoNe"=tempoNe, "htz_list"=htz_list))
+}

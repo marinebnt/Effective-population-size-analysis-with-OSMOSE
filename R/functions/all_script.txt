@@ -1,0 +1,301 @@
+
+# setwd("X:/osmose-ns")
+
+main = "New_gpu_conf.R"
+source(file.path("osmose-ns-v4.4.1_clim/R/functions/source.R"))
+repo        = "Simu_LONG"
+multip_name = "y"
+multipliers = c(1,0.5,0.75,1.25,1.5)
+
+
+path_in <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/osmose-ns-v4.4.1_clim/output/test")
+# path_in <- c("Y:/outputs-meso-marine")
+# path_in <- c("/home1/datawork/mbeneat/outputs-meso-marine")
+list_d <- list.dirs(path = path_in, recursive = F, full.names = T)
+
+# for the test : has to be erased when real launch
+# nb_sp = 7
+# species = species[1:7]
+# sp_names = sp_names[1:7]
+# species_i = species_i[1:7]
+# years = 120
+# ny       <- 120-get_par(conf, "output.start.year")
+# time_vec <- seq(0,ny, by=1/dt)[-1]
+# nb_rep = 1
+# ncohort = years
+
+plot_Neth <- list()
+plot_Nete <- list()
+plot_Nb   <- list()
+plot_htz  <- list()
+F_vec     <- list()
+
+
+for (sp in species){
+  sp_i <- which(species == sp)-1
+  # open one dir at a time
+  sp_dir <- list_d[grep(pattern = paste0("sp", sp_i), list_d)]
+  
+  plot_Neth_sp <- list()
+  plot_Nete_sp <- list()
+  plot_Nb_sp   <- list()
+  plot_htz_sp  <- list()
+  Fmax_1 = -99
+  Fstart_1 = -99
+  for (Fmax in multipliers){
+    Fmax_dir <- sp_dir[grep(pattern = paste0("Fmax", Fmax, "_"), sp_dir)]
+    for (Fstart in multipliers){
+      dir <- Fmax_dir[grep(pattern = paste0("Fstart", Fstart, "_"), Fmax_dir)]
+      
+      if (length(list.files(dir))<1){
+        cat("\ndata missing", dir, "\n")
+        next}
+      if (Fmax_1==-99 && Fstart_1 ==-99){
+        Fmax_1 = Fmax
+        Fstart_1 = Fstart
+        F_vec[[sp]] <- c(Fmax_1, Fstart_1)
+      }
+      
+      # initialisation
+      simulation = dir
+      cat("\n\t---> folder Fmax", Fmax, " Fstart", Fstart, " sp", sp, "\n")
+      
+      ns1 = NULL
+      outputDir_Simu  = simulation
+      outputDir_Ne    = file.path(configDir, "output", "PLOTS", paste0("Fmax", Fmax, "Fstart", Fstart, "sp", sp_i))
+      dir.create(outputDir_Ne, recursive = T)
+      dim_vec  <- c("abundanceByAge", "eggNumber", "mortalityByAge", "schoolNumber")
+      ns1 = read_osmose(path = outputDir_Simu)
+      
+      INIT2 <- function_INIT2(outputDir_Simu, outputDir_Ne, dim_vec, species, nb_rep, OUTPUT_data=ns1, conf, seeding_y, REPO=dir,
+                              TEMPORAL=TRUE, HTZ=TRUE)
+      
+      save(INIT2, file="INIT2.RData")
+      # load(file="INIT2.RData")
+      
+      data_Ne_raw    <- INIT2[["data_Ne_raw"]]
+      data_Nete      <- INIT2[["data_Ne"]]
+      data_Nb        <- INIT2[["data_Nb"]]
+      data_Netp      <- INIT2[["tempoNe"]]
+      data_htz       <- INIT2[["htz_list"]]
+  
+      
+      for (sp_plotted in species){
+        
+        for (rep in 1:nb_rep){
+          Neth <- data_Nete$Ne[[sp_plotted]][[paste0("rep_", rep)]]
+          Nb   <- data_Nb$Nb[[sp_plotted]][[paste0("rep_", rep)]]
+          Netp <- data_Netp[[sp_plotted]][[paste0("rep_", rep)]]
+          Htz  <- data_htz[[paste0("rep_", rep)]][,sp_plotted]
+          dimensions_outputs = dim(ns1$biomass)
+          first_y_Ne_tempo <- max(seeding_y, c(years-dimensions_outputs[1]+1))
+          Yea  <- first_y_Ne_tempo:(years)
+          Yea_tp  <- first_y_Ne_tempo:(years-20) #20 :2* generation length max : gap between t1 and t2 to estimate Netp
+          Neth <- Neth[which(colnames(data_Nete$Ne[[sp_plotted]][[paste0("rep_", rep)]]) %in% paste0("cohort_", Yea))] 
+          Nb   <- Nb[which(names(Nb) %in% Yea)]   
+          Htz  <- Htz[which(rownames(data_htz[[paste0("rep_", rep)]]) %in% Yea)]   
+          Netp <- Netp[which(names(data_Netp[[sp_plotted]][[paste0("rep_", rep)]]) %in% paste0(Yea))]   
+            
+            # produce data 
+          if (Fmax == Fmax_1 && Fstart == Fstart_1 && rep==1){
+              # data_f for plots
+              Neth_df <- data.frame(year = Yea, 
+                                    Ne_th = t(Neth), 
+                                    Fish_press = rep(paste0("Fmax=", Fmax, " Fstart=", Fstart), length(Neth)),
+                                    replicate = rep-1)
+              Netp_df <- data.frame(year = Yea_tp, 
+                                    Ne_tp = (Netp), 
+                                    Fish_press = rep(paste0("Fmax=", Fmax, " Fstart=", Fstart), length(Netp)),
+                                    replicate = rep-1)
+              Nb_df   <- data.frame(data.frame(year = Yea, 
+                                    Nb = Nb, 
+                                    Fish_press = rep(paste0("Fmax=", Fmax, " Fstart=", Fstart), length(Nb))),
+                                    replicate = rep-1)
+              htz_df  <- data.frame(data.frame(year = Yea, 
+                                    Htz = Htz, 
+                                    Fish_press = rep(paste0("Fmax=", Fmax, " Fstart=", Fstart), length(Nb))),
+                                    replicate = rep-1)
+          } else {
+            Neth_df <- rbind(Neth_df, 
+                             data.frame(year = Yea, 
+                                        Ne_th = t(Neth), 
+                                        Fish_press = rep(paste0("Fmax=", Fmax, " Fstart=", Fstart), length(Neth)),
+                                        replicate = rep-1))
+            Netp_df <- rbind(Netp_df,
+                             data.frame(year = Yea_tp, 
+                                        Ne_tp = Netp, 
+                                        Fish_press = rep(paste0("Fmax=", Fmax, " Fstart=", Fstart), length(Netp)),
+                                        replicate = rep-1))
+            Nb_df   <- rbind(Nb_df, 
+                             data.frame(year = Yea, 
+                                        Nb = Nb, 
+                                        Fish_press = rep(paste0("Fmax=", Fmax, " Fstart=", Fstart), length(Nb)),
+                                        replicate = rep-1))
+            htz_df  <-  rbind(htz_df, data.frame(year = Yea, 
+                                        Htz = (Htz), 
+                                        Fish_press = rep(paste0("Fmax=", Fmax, " Fstart=", Fstart), length(Nb)),
+                                        replicate = rep-1))
+            
+            save(Neth_df, file="Neth_df.RData")
+            save(Netp_df, file="Netp_df.RData")
+            save(Nb_df, file="Nb_df.RData")
+            save(htz_df, file="htz_df.RData")
+            
+          }
+        }#rep_plot
+        Neth_df_mean = NULL
+        Netp_df_mean = NULL
+        Nb_df_mean = NULL
+        htz_df_mean = NULL
+        
+        Neth_df_mean <- Neth_df %>%
+          group_by(Fish_press, year) %>%
+          summarise(Ne_th_mean = mean(Ne_th, na.rm = TRUE),
+                    Ne_th_sd   = sd(Ne_th, na.rm = TRUE))
+        Netp_df_mean <- Netp_df %>%
+          group_by(Fish_press, year) %>%
+          summarise(Ne_tp_mean = mean(Ne_tp, na.rm = TRUE),
+                    Ne_tp_sd   = sd(Ne_tp, na.rm = TRUE))
+        Nb_df_mean <- Nb_df %>%
+          group_by(Fish_press, year) %>%
+          summarise(Nb_mean = mean(Nb, na.rm = TRUE),
+                    Nb_sd   = sd(Nb, na.rm = TRUE))
+        htz_df_mean <- htz_df %>%
+          group_by(Fish_press, year) %>%
+          summarise(htz_mean = mean(Htz, na.rm = TRUE),
+                    htz_sd   = sd(Htz, na.rm = TRUE))
+        
+        plot_Neth_sp[[sp_plotted]] <- Neth_df_mean
+        plot_Nete_sp[[sp_plotted]] <- Netp_df_mean
+        plot_Nb_sp[[sp_plotted]]   <- Nb_df_mean
+        plot_htz_sp[[sp_plotted]]  <- htz_df_mean        
+        # plot_Neth_sp[[sp_plotted]] <- Neth_df_sd
+        # plot_Nete_sp[[sp_plotted]] <- Netp_df_sd
+        # plot_Nb_sp[[sp_plotted]]   <- Nb_df_sd
+        # plot_htz_sp[[sp_plotted]]  <- htz_df_sd
+          
+        save(plot_Neth_sp, file="plot_Neth_sp.RData")
+        save(plot_Nete_sp, file="plot_Nete_sp.RData")
+        save(plot_Nb_sp, file="plot_Nb_sp.RData")
+        save(plot_htz_sp, file="plot_htz_sp.RData")
+        
+        
+      }#sp_plotted
+    }#Fstart
+  } #Fmax
+  # i want this subset one to appear on every plot
+  for (sp_plotted in species){
+    reference <- subset(plot_Neth_sp[[sp_plotted]], Fish_press == paste0("Fmax=", F_vec[[sp]][1], " Fstart=", F_vec[[sp]][2]))[, c("Ne_th_mean", "year")]
+    plot_Neth[[sp]][[sp_plotted]] <- ggplot(data = plot_Neth_sp[[sp_plotted]], aes(x = year, y = Ne_th_mean, group = Fish_press)) +
+      theme_bw()+
+      labs(title = paste0(sp_plotted, " Ne theoretical, ref is ", F_vec))+
+      # 1) Layer: each panel gets its own group (via facet_wrap)
+      geom_line() +
+      # 2) Layer: reference group A, drawn in all panels
+      geom_line(data = reference,
+                aes(x = year, y = Ne_th_mean, group = 1),
+                linetype = "dashed", linewidth = 0.7) +
+      facet_wrap(~ Fish_press)
+    
+    # i want this subset one to appear on every plot
+    reference <- subset(plot_Nete_sp[[sp_plotted]], Fish_press == paste0("Fmax=", F_vec[[sp]][1], " Fstart=", F_vec[[sp]][2]))[, c("Ne_tp_mean", "year")]
+    plot_Nete[[sp]][[sp_plotted]] <- ggplot(data = plot_Nete_sp[[sp_plotted]], aes(x = year, y = Ne_tp_mean, group = Fish_press)) +
+      theme_bw()+
+      labs(title = paste0(sp_plotted, " Ne temporal, ref is ", F_vec))+
+      # 1) Layer: each panel gets its own group (via facet_wrap)
+      geom_line() +
+      # 2) Layer: reference group A, drawn in all panels
+      geom_line(data = reference,
+                aes(x = year, y = Ne_tp_mean, group = 1),
+                linetype = "dashed", linewidth = 0.7) +
+      facet_wrap(~ Fish_press)
+    
+    reference <- subset(plot_Nb_sp[[sp_plotted]], Fish_press ==paste0("Fmax=", F_vec[[sp]][1], " Fstart=", F_vec[[sp]][2]))[, c("Nb_mean", "year")]
+    plot_Nb[[sp]][[sp_plotted]] <- ggplot(data = plot_Nb_sp[[sp_plotted]], aes(x = year, y = Nb_mean, group = Fish_press)) +
+      theme_bw()+
+      labs(title = paste0(sp_plotted, " Ne breeders, ref is ", F_vec))+
+      # 1) Layer: each panel gets its own group (via facet_wrap)
+      geom_line() +
+      # 2) Layer: reference group A, drawn in all panels
+      geom_line(data = reference,
+                aes(x = year, y = Nb_mean, group = 1),
+                linetype = "dashed", linewidth = 0.7) +
+      facet_wrap(~ Fish_press)
+    
+    # i want this subset one to appear on every plot
+    reference <- subset(plot_htz_sp[[sp_plotted]], Fish_press == paste0("Fmax=", F_vec[[sp]][1], " Fstart=", F_vec[[sp]][2]))[, c("htz_mean", "year")]
+    plot_htz[[sp]][[sp_plotted]] <- ggplot(data = plot_htz_sp[[sp_plotted]], aes(x = year, y = htz_mean, group = Fish_press)) +
+      theme_bw()+
+      labs(title = paste0(sp_plotted, " heterozygosity, ref is ", F_vec))+
+      # 1) Layer: each panel gets its own group (via facet_wrap)
+      geom_line() +
+      # 2) Layer: reference group A, drawn in all panels
+      geom_line(data = reference,
+                aes(x = year, y = htz_mean, group = 1),
+                linetype = "dashed", linewidth = 0.7) +
+      facet_wrap(~ Fish_press)
+    
+  }
+  
+  pathout <- paste0(configDir, "/output/PLOTS/All_genetic_drift_indicators")
+  dir.create(pathout, recursive = T)
+  
+  pdf(file = paste0(pathout, "/plot_Neth_", sp, ".pdf"), width = 5, height = 4)
+  par(mfrow=c(1,1))
+  print(plot_Neth[[sp]])
+  dev.off()
+  
+  pdf(file = paste0(pathout, "/plot_Nete_", sp, ".pdf"), width = 5, height = 4)
+  par(mfrow=c(1,1))
+  print(plot_Nete[[sp]])
+  dev.off()
+  
+  pdf(file = paste0(pathout, "/plot_Nb_", sp, ".pdf"), width = 5, height = 4)
+  par(mfrow=c(1,1))
+  print(plot_Nb[[sp]])
+  dev.off()
+  
+  pdf(file = paste0(pathout, "/plot_htz_", sp, ".pdf"), width = 5, height = 4)
+  par(mfrow=c(1,1))
+  print(plot_htz[[sp]])
+  dev.off()
+  
+  save(plot_Neth, file="plot_Neth.RData")
+  save(plot_Nete, file="plot_Nete.RData")
+  save(plot_Nb, file="plot_Nb.RData")
+  save(plot_htz, file="plot_htz.RData")
+  
+} #sp
+
+
+for (sp in species){
+  pathout <- paste0(configDir, "/output/PLOTS/All_genetic_drift_indicators")
+  dir.create(pathout, recursive = T)
+  
+  pdf(file = paste0(pathout, "/plot_Neth_", sp, ".pdf"), width = 5, height = 4)
+  par(mfrow=c(1,1))
+  print(plot_Neth[[sp]])
+  dev.off()
+  
+  pdf(file = paste0(pathout, "/plot_Nete_", sp, ".pdf"), width = 5, height = 4)
+  par(mfrow=c(1,1))
+  print(plot_Nete[[sp]])
+  dev.off()
+  
+  pdf(file = paste0(pathout, "/plot_Nb_", sp, ".pdf"), width = 5, height = 4)
+  par(mfrow=c(1,1))
+  print(plot_Nb[[sp]])
+  dev.off()
+  
+  pdf(file = paste0(pathout, "/plot_htz_", sp, ".pdf"), width = 5, height = 4)
+  par(mfrow=c(1,1))
+  print(plot_htz[[sp]])
+  dev.off()
+}
+
+
+
+
+
+
+

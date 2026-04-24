@@ -1,0 +1,99 @@
+# equations to estimate temporal Ne --------------------
+# based on Marty et al 2014 and Waples 1989
+# marine beneat
+# 11/06/25
+
+
+library(osmose)
+library(stringr)
+library(reshape2)
+library(ggplot2)
+library(tidyr)
+
+
+estimate_temporalNe <- function(outputDir_Simu, data_Ne, species, conf, seeding_y, OUTPUT_data){
+  temporalNe <- list()
+  Ne = c()
+    for (sp in species){
+      cat("\n", sp)
+      sp_id <- which(sp %in% sp_names)
+      Ne_list = list()
+      for (rep in 1:nb_rep){
+        k=0
+        Ne = c()
+        cohort_time_corr <- data_Ne[["cohort_time_step_corresponding"]]
+        co_to_include <- which(colSums(data_Ne[["longevity"]][[sp]][[paste0("rep_", rep)]] )>0)
+        
+        # allele freq data 
+        data <- ncdf4::nc_open(paste0(outputDir_Simu, "/Genetic/ns_alleleFrequency-", sp, "Simu", c(rep-1), ".nc"))
+        data_nc <- ncdf4::ncvar_get(data, "allele_occurrence_frequency")
+        if (length(dim(data_nc))==4) {trait1_data <- data_nc[, , 1, ] # trait 1 is the neutral trait 
+          }else {trait1_data <- data_nc} 
+        ncdf4::nc_close(data)
+        trait1_data <- trait1_data/100 # we want something <1
+        
+        dimensions_outputs = dim(OUTPUT_data$biomass)
+        first_y_Ne_tempo <- max(seeding_y, c(years-dimensions_outputs[1]+1))
+        t1=0
+        for (year_i in first_y_Ne_tempo:(years-20)){
+          t1 = t1+1
+          # cat(t1)
+          k=k+1
+          t2 = t1+20
+          
+          lambdaa = data.frame(data_Ne$survivorship_curve[[sp]][[rep]])
+          # lambdaa <- as.data.frame(rowMeans(lambdaa))
+          lambdaa$age <- rownames(lambdaa)
+          ba = data.frame(data_Ne$b_rate_sc[[sp]][[rep]])
+          # ba <- as.data.frame(rowMeans(ba))
+          ba$age <- as.numeric(rownames(ba))
+          a = as.numeric(lambdaa$age)
+          generation_length <-c()
+          for (co in c(years-dimensions_outputs[1]+1):years){
+            ii <- grep(pattern=co, colnames(lambdaa))
+            generation_length[ii] <- sum(a*lambdaa[,ii]*ba[,ii], na.rm=T)/ sum(lambdaa[,ii]*ba[,ii], na.rm = T)
+          }
+          
+          # abundance
+          abund <- ns1[["abundanceByAge"]][[sp]][,,rep]
+          # cat(generation_time, "\n")
+          abund <- rowSums(abund)
+          abund_1 <- abund[t1]
+          abund_2 <- abund[t2]
+          
+          # F : the variance in allele frequency change between two samples 
+          # According to Nei and Tajima 1981
+          #number of  allelic states
+          L = as.numeric(get_var(conf, paste0("neutral.trait.nval.sp", sp_id)))
+          #number of loci
+          K = as.numeric(get_var(conf, paste0("neutral.trait.nlocus.sp", sp_id)))
+          #frequency of allelic state l at locus k
+          Sum_on_L = 0
+          for (li in 1:L){
+            Sum_on_K = 0
+            for (ki in 1:K){
+              numerator   <- (trait1_data[li,ki,(t1)]-trait1_data[li,ki,(t2)])^2
+              denominator <- (trait1_data[li,ki,(t1)]+trait1_data[li,ki,(t2)])/2 -
+                (trait1_data[li,ki,t1]*trait1_data[li,ki,t2])
+              Sum_on_K = Sum_on_K + numerator/denominator
+            }
+            Sum_on_L = Sum_on_L + (1/K)*Sum_on_K
+          }
+          F_Ne = (1/L)*Sum_on_L
+          # Ne : the effective population size
+          # longevity <- data_Ne[["longevity"]][[sp]][[paste0("rep_", rep)]]
+          # generation_length <- mean(longevity[1,2:20])
+          
+          numerator = t2-t1+1
+          denominator = 2*mean(generation_length, na.rm = T)*(F_Ne+1/(2*abund_1)-1/(2*abund_2))
+          Ne[k] = numerator/denominator
+        }
+        Ne_list[[paste0("rep_", rep)]] = Ne
+        names(Ne_list[[paste0("rep_", rep)]]) = first_y_Ne_tempo:(years-20)
+      }#rep
+    names(Ne) <- first_y_Ne_tempo:(years-20)
+    temporalNe[[sp]] = Ne_list
+  }#sp
+  save(temporalNe, file=paste0(outputDir_Ne, "/temporalNe.RData"))
+  return(temporalNe)
+}
