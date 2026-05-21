@@ -4,7 +4,6 @@
 ##################################
 
 
-
 # TOOLS functions ----------------
 
 
@@ -46,12 +45,15 @@ clean_values <- function(df, value_col = "value") {
 
 
 # estiamte ssdg as the sum of the delta*Dead/N per age
-add_SSDg <- function(df, weight){
-  if (!("weight" %in% colnames(weight))) colnames(weight)[which(colnames(weight) == "value")] <- "weight"
-  if ("variable" %in% colnames(weight)) weight <- weight[,-which(colnames(weight) == "variable")]
-  df_w <- weighted_reduce(df, weight_df = weight, join_cols = c("age", "Fmax", "Fstart", "replicate", "Species"), 
-                        group_cols = c("age", "Fmax", "Fstart", "variable", "Species"))
-  df_s <- df_w %>%
+add_SSDg <- function(df){ #, weight){
+  # if (!("weight" %in% colnames(weight))) colnames(weight)[which(colnames(weight) == "value")] <- "weight"
+  # if ("variable" %in% colnames(weight)) weight <- weight[,-which(colnames(weight) == "variable")]
+  # df_w <- weighted_reduce(df, weight_df = weight, join_cols = c("age", "Fmax", "Fstart", "replicate", "Species"),
+  #                       group_cols = c("age", "Fmax", "Fstart", "variable", "Species"))
+  df_m <- df %>%
+    group_by(age, Fmax, Fstart, variable, Species)%>%
+    summarise(value=mean(value, na.rm=T))
+  df_s <- df_m %>%
     group_by(variable, Fmax, Fstart, Species) %>%
     summarize(SSDg = sum(value, na.rm = T))%>%
     ungroup()
@@ -60,23 +62,23 @@ add_SSDg <- function(df, weight){
 
 
 # weighted mean process
-build_weight_df <- function(df, weight_var = "abundanceByAge",
-                            key_cols = c("Species", "replicate", "Fstart", "Fmax", "cohort", "age")) {
-  out <- df[df$variable == weight_var, c(key_cols, "value"), drop = FALSE]
-  colnames(out)[colnames(out) == "value"] <- "weight"
-  out
-}
+# build_weight_df <- function(df, weight_var = "abundanceByAge",
+#                             key_cols = c("Species", "replicate", "Fstart", "Fmax", "cohort", "age")) {
+#   out <- df[df$variable == weight_var, c(key_cols, "value"), drop = FALSE]
+#   colnames(out)[colnames(out) == "value"] <- "weight"
+#   out
+# }
 
-weighted_reduce <- function(df, weight_df, join_cols, group_cols, drop_age_zero = T) {
-  data_with_w <- df %>%
-    dplyr::left_join(weight_df, relationship = "many-to-many", by=join_cols)
-  data_with_w <- data_with_w[data_with_w$weight != 0, , drop = FALSE]
-  data_with_w$age <- as.numeric(data_with_w$age)
-  if (drop_age_zero) data_with_w <- data_with_w[data_with_w$age != 0, , drop = FALSE]
-  data_with_w %>%
-    dplyr::group_by(dplyr::across(dplyr::all_of(group_cols))) %>%
-    dplyr::summarise(value = stats::weighted.mean(value, w = weight, na.rm = TRUE), .groups = "drop")
-}
+# weighted_reduce <- function(df, weight_df, join_cols, group_cols, drop_age_zero = T) {
+#   data_with_w <- df %>%
+#     dplyr::left_join(weight_df, relationship = "many-to-many", by=join_cols)
+#   data_with_w <- data_with_w[data_with_w$weight != 0, , drop = FALSE]
+#   data_with_w$age <- as.numeric(data_with_w$age)
+#   if (drop_age_zero) data_with_w <- data_with_w[data_with_w$age != 0, , drop = FALSE]
+#   data_with_w %>%
+#     dplyr::group_by(dplyr::across(dplyr::all_of(group_cols))) %>%
+#     dplyr::summarise(value = stats::weighted.mean(value, w = weight, na.rm = TRUE), .groups = "drop")
+# }
 
 
 # optimize legend position to avoid overlapping with the text or curves
@@ -243,7 +245,7 @@ resolve_legend_position <- function(position_legend, df, x_col, y_col,
     return(c(min(0.98, max(0.02, position_legend[1])), min(0.98, max(0.02, position_legend[2]))))
   }
 
-  if (is.character(position_legend) && position_legend %in% c('none', "bottom", "top", "left", "right"))
+  if (is.character(position_legend) && position_legend %in% c("bottom", "top", "left", "right"))
     return(c(1, 0.5))
   
   if (is.character(position_legend) && length(position_legend) == 1) {
@@ -330,6 +332,13 @@ improve_vriable_names <- function(vector){
   vector <- stringr::str_replace(vector, pattern="_point", replacement = ".")
   vector <- stringr::str_replace(vector, pattern="Ne_N_alpha", replacement = "N\u2091")
   vector <- stringr::str_replace(vector, pattern="_point", replacement = "\u2022")
+  vector <- stringr::str_replace(vector, pattern="F_deaths", replacement = "Fisheries deaths")
+  vector <- stringr::str_replace(vector, pattern="Mpred_deaths", replacement = "Predation deaths")
+  vector <- stringr::str_replace(vector, pattern="Mnat_deaths", replacement = "Natural deaths")
+  vector <- stringr::str_replace(vector, pattern="Mstar_deaths", replacement = "Starvation deaths")
+  vector <- stringr::str_replace(vector, pattern="tot_deaths", replacement = "All deaths")
+  vector <- stringr::str_replace(vector, pattern="\nsum", replacement = " - ")
+  vector <- stringr::str_replace(vector, pattern="eggNumber_sc", replacement = "Eggs")
   # vector <- expression(vector)
 }
 
@@ -346,7 +355,8 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
                                relative_to_ref = FALSE, proportional=F,
                                spec, age_dim=FALSE, sp_dim=FALSE, 
                                reference_input=NULL, FORCElm=F, title = "regular", scale_facet="free",
-                               weight, chosen_title=NULL, 
+                               # weight, 
+                               chosen_title=NULL, subtitle=NULL,
                                position_legend="auto", ncol=2, nrow=2, facet=T, scale_z = T) {
   
   plot_name_ch=c()
@@ -355,16 +365,24 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
   if (plot_name=="FALSEFALSE") plot_name_ch <- c("")
   if (plot_name=="FALSETRUE") plot_name_ch <- c("proportional")
   
+  if (age_dim==T & any(sapply(df_trait_sp$variable, FUN = function(x) (all(is.na(df_trait_sp$age[which(df_trait_sp$variable == x)])))))) {
+    v_null <- df_trait_sp$variable[which(sapply(df_trait_sp$variable, FUN = function(x) {
+      (all(is.na(df_trait_sp$age[which(df_trait_sp$variable == x)])))
+    }))]
+    df_trait_sp <- df_trait_sp[-which(df_trait_sp$variable == v_null),]
+  }
+  
   var_x <- c("Fmax")
   if (age_dim) var_x <- c("age", "Fmax")
   if (sp_dim) var_x <- c(var_x, "Species")
   PARAM <- c(var_x, ifelse(any(grepl("cohort", colnames(df_trait_sp))), c("cohort"), c(NA)))
   if(any(is.na(PARAM))) PARAM <- PARAM[-which(is.na(PARAM))]
+  if("age" %in% colnames(df_trait_sp)) PARAM <- c(PARAM, "age")
+  PARAM <- unique(PARAM)
   
   # Filter to target species and cast key numeric columns.
   df_trait_sp_F        <- df_trait_sp[which(df_trait_sp$Species %in% spec),]
   if ("Fstart" %in% colnames(df_trait_sp)) df_trait_sp_F$Fstart <- as.numeric(df_trait_sp_F$Fstart)
-  df_trait_sp_F$Fmax   <- as.numeric(df_trait_sp_F$Fmax)
   if (any(is.infinite(df_trait_sp_F$value))) df_trait_sp_F <- df_trait_sp_F[-which(is.infinite(df_trait_sp_F$value)), ]
 
   supp_name = ""
@@ -380,24 +398,24 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
   
   # Extract reference (Fmax=1, Fstart=1) if relative mode is on.
   if (is.null(reference_input)){
-    if(!age_dim) ref_data <- df_trait_sp_F %>%
-      filter(get(var_x) == 1 & Fstart == 1) %>%
-      dplyr::select(variable, value, replicate) %>%
-      dplyr::rename(ref_value = value)    
-    if(all(c("age", "cohort") %in% PARAM)) ref_data <- df_trait_sp_F %>%
-      filter(get(var_x[2]) == 1 & Fstart == 1) %>%
-      dplyr::select(variable, value, replicate, age, cohort) %>%
-      dplyr::rename(ref_value = value)
     if(!(c("cohort") %in% PARAM) & age_dim) ref_data <- df_trait_sp_F %>%
       filter(get(var_x[2]) == 1 & Fstart == 1) %>%
-      dplyr::select(variable, value, replicate, age) %>%
+      dplyr::select(variable, value, replicate, age, Species) %>%
       dplyr::rename(ref_value = value)
+    if(!age_dim) ref_data <- df_trait_sp_F %>%
+      filter(Fmax == 1 & Fstart == 1) %>%
+      dplyr::select(variable, value, replicate, Species) %>%
+      dplyr::rename(ref_value = value)    
+    if(all(c("age", "cohort") %in% PARAM)) ref_data <- df_trait_sp_F %>%
+      filter(Fmax == 1 & Fstart == 1) %>%
+      dplyr::select(variable, value, replicate, age, cohort, Species) %>%
+      dplyr::rename(ref_value = value)
+    if(any(colnames(ref_data) %in% c("Fmax", "Fstart"))) ref_data <- ref_data[, -which(colnames(ref_data) %in% c("Fmax", "Fstart"))]
   } else {
     ref_data <- reference_input
   }
   if ((relative_to_ref | proportional) & (nrow(ref_data) == 0)) cat("no data in ref_data")
   if ((relative_to_ref | proportional) & nrow(ref_data)>0) {
-    ref_data <- na.omit(ref_data)
     if (any(ref_data$ref_value == 0)) {
       ref_data$ref_value      <- ref_data$ref_value + 0.000001
       df_trait_sp_F$value <- df_trait_sp_F$value + 0.000001
@@ -442,44 +460,21 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     }
   }
   
-  # Aggregate across replicates for each Fmax/Fstart/variable.
-  
-  weight$replicate <- as.numeric(weight$replicate)
-  weight <- na.omit(weight)
-  df_trait_sp_F$replicate <- as.numeric(df_trait_sp_F$replicate)
-  if ("age" %in% colnames(weight)) {
-    weight$age <- as.numeric(weight$age)
-    if (!age_dim) {
-      if(c("cohort") %in% PARAM) 
-        weight <- weight %>%
-          group_by(replicate, Species, Fmax, Fstart, cohort) %>%
-          summarize(weight = mean(weight, na.rm=T)) %>%
-          ungroup()
-      if(!(c("cohort") %in% PARAM))         
-        weight <- weight %>%
-          group_by(replicate, Species, Fmax, Fstart) %>%
-          summarize(weight = mean(weight, na.rm=T)) %>%
-          ungroup()
-    }
-  }
-  weight$Fmax <- as.numeric(weight$Fmax)
-  weight$Fstart <- as.numeric(weight$Fstart)
-  if (any("variable" %in% colnames(weight))) weight <- weight[,-which(colnames(weight) == "variable")] 
-  if (any("value" %in% colnames(weight))) colnames(weight)[which(colnames(weight) == "value")] <- "weight"
-  df_trait_sp_F <- left_join(df_trait_sp_F, weight, relationship = "many-to-many")
-  if (any(is.na(df_trait_sp_F$weight))) {
-    cat("NAs in the weight data")
-    df_trait_sp_F <- df_trait_sp_F[-which(is.na(df_trait_sp_F$weight)),]
-  }
+  # arithmetic mean mean
   if (length(var_x)==1){
     df_trait_sp_F_mean_sd <- df_trait_sp_F %>%
       group_by(get(var_x), Fstart, variable) %>%
-      summarise(mean =  weighted.mean(w=weight, x=value, na.rm = TRUE),
+      # summarise(mean = weighted.mean(w=weight, x=value, na.rm = TRUE),      
+      summarise(mean = mean(value, na.rm = TRUE),
                 sd   = sd(value, na.rm = TRUE))
   } else {df_trait_sp_F_mean_sd <- df_trait_sp_F %>%
     group_by(get(var_x[1]),get(var_x[2]), Fstart, variable) %>%
-    summarise(mean = weighted.mean(w=weight, value, na.rm = TRUE),
+    # summarise(mean = weighted.mean(w=weight, x=value, na.rm = TRUE),
+    summarise(mean = mean(value, na.rm = TRUE),
               sd   = sd(value, na.rm = TRUE))}
+  
+    
+  # update colnames
   if (any(colnames(df_trait_sp_F_mean_sd) == "get(var_x)")) colnames(df_trait_sp_F_mean_sd)[which(colnames(df_trait_sp_F_mean_sd) == "get(var_x)")] <- var_x
   if (any(colnames(df_trait_sp_F_mean_sd) == "get(var_x[1])")) colnames(df_trait_sp_F_mean_sd)[which(colnames(df_trait_sp_F_mean_sd) == "get(var_x[1])")] <- var_x[1]
   if (any(colnames(df_trait_sp_F_mean_sd) == "get(var_x[2])")) colnames(df_trait_sp_F_mean_sd)[which(colnames(df_trait_sp_F_mean_sd) == "get(var_x[2])")] <- var_x[2]
@@ -561,7 +556,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
              max(c(df_trait_sp_F_mean_sd$mean), na.rm = T))
   # Build slope summary text for the subtitle.
   slope_subtitle <- format_slope_subtitle(df = df_trait_sp_F, x_col = var_x[1], y_col = "value", group_col = "variable")
-  subtitle <- ifelse(nchar(paste(spec, slope_subtitle, sep = " | ", supp_name))>100, FALSE, TRUE)
+  if (is.null(subtitle)) subtitle <- ifelse(nchar(paste(spec, slope_subtitle, sep = " | ", supp_name))>100, FALSE, TRUE)
   if (subtitle) {
     subtitle = paste(spec, slope_subtitle, sep = " | ", supp_name)
   } else { subtitle = spec}
@@ -579,184 +574,12 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
   df_trait_sp_F_mean_sd$Fmax = as.factor(df_trait_sp_F_mean_sd$Fmax)
   if ("age" %in% colnames(df_trait_sp_F_mean_sd)) df_trait_sp_F_mean_sd$age = as.numeric(df_trait_sp_F_mean_sd$age)
   df_trait_sp_F_mean_sd$variable = as.factor(df_trait_sp_F_mean_sd$variable)
- #  # Normalize types for plotting and factor ordering.
- #  df_trait_sp_F$variable = as.factor(df_trait_sp_F$variable)
- #  df_trait_sp_F$Fstart   = as.factor(df_trait_sp_F$Fstart)
- #  df_trait_sp_F$value     = as.numeric(df_trait_sp_F$value)
- #  df_trait_sp_F[,var_x[1]]  = as.numeric(as.matrix(df_trait_sp_F[,var_x[1]]))
- #  df_trait_sp_F_mean_sd$mean     = as.numeric(df_trait_sp_F_mean_sd$mean)
- #  
- #  
- #  # removed because not convinced by method
- #  # Detect exploding ranges across traits and log-transform only when needed.
- #  # This keeps small-variation traits visible when one trait dominates by orders of magnitude.
- #  # explode_threshold <- 50
- #  # if (length(unique(df_trait_sp_F$variable)) > 1) {
- #  #   df_trait_sp_F_noInf <- df_trait_sp_F
- #  #   if (any(is.infinite(df_trait_sp_F$mean))) df_trait_sp_F_noInf <- df_trait_sp_F[-which(is.infinite(df_trait_sp_F$mean)), ]
- #  #   if (nrow(df_trait_sp_F_noInf)>0){
- #  #     range_by_var <- aggregate(as.matrix(df_trait_sp_F_noInf[, "mean"]), list(df_trait_sp_F_noInf$variable),
- #  #                               function(x) diff(range(x, na.rm = TRUE)))
- #  #     colnames(range_by_var) <- c("variable", "range_val")
- #  #     pos_by_var <- aggregate(df_trait_sp_F_noInf[, "mean"], list(df_trait_sp_F_noInf$variable),
- #  #                             function(x) all(x > 0, na.rm = TRUE))
- #  #     colnames(pos_by_var) <- c("variable", "all_positive")
- #  #     range_by_var <- dplyr::left_join(range_by_var, pos_by_var, by = "variable")
- #  #     
- #  #     finite_ranges <- range_by_var$range_val[is.finite(range_by_var$range_val) & !is.na(range_by_var$range_val) & range_by_var$range_val > 0]
- #  #     if (length(finite_ranges) >= 2) {
- #  #       range_ratio <- max(finite_ranges, na.rm = TRUE) / min(finite_ranges, na.rm = TRUE)
- #  #       if (is.finite(range_ratio) && range_ratio >= explode_threshold) {
- #  #         max_range <- max(finite_ranges, na.rm = TRUE)
- #  #         # vars_to_log <- as.character(range_by_var$variable[
- #  #         #   which(range_by_var$range_val >= (0.8 * max_range) & range_by_var$all_positive)
- #  #         # ])
- #  #         vars_to_log <- as.character(range_by_var$variable[
- #  #             which(range_by_var$range_val >= explode_threshold)])
- #  #         if (length(vars_to_log) > 0) {
- #  #           id_log <- which(df_trait_sp_F$variable %in% vars_to_log)
- #  #           df_trait_sp_F$mean[id_log] <- log10(df_trait_sp_F$mean[id_log])
- #  #           df_trait_sp_F$variable <- as.character(df_trait_sp_F$variable)
- #  #           df_trait_sp_F$variable[id_log] <- paste0(df_trait_sp_F$variable[id_log], " (log10)")
- #  #         }
- #  #       }
- #  #     }
- #  #   }
- #  # }
- #  
- #  # Build slope summary text for the subtitle.
- #  slope_subtitle <- format_slope_subtitle(df = df_trait_sp_F_mean_sd, x_col = var_x[1], y_col = "mean", group_col = "variable")
- # 
- #  # what variable have scale y axis and which ones have scale secondary axis?
- #  scale = 1
- #  scale_factor <- 1
- #  shift <- 0
- #  var_scale_regular = NA
- #  
- #  if (nrow(df_trait_sp_F)==0) return(list(c(), c()))
- #  
- #  # mean_var <- aggregate(df_trait_sp_F[, "mean"], list(df_trait_sp_F$variable), mean, na.rm=T)
- #  # max_var  <- aggregate(df_trait_sp_F[, "mean"], list(df_trait_sp_F$variable), max, na.rm=T)  
- #  mean_var <- aggregate(df_trait_sp_F[, "value"], list(df_trait_sp_F$variable), mean, na.rm=T)
- #  max_var  <- aggregate(df_trait_sp_F[, "value"], list(df_trait_sp_F$variable), max, na.rm=T)
- #  var_scale_regular <- NULL
- #  var_scale_regular = mean_var[which(mean_var[, 2] > (0.8 * (max(mean_var[, 2])))), 1]
- #  if (length(var_scale_regular) == length(trait_name)) var_scale_regular <- NULL
- #  # id_keep <- 1:length(df_trait_sp_F$mean)
- #  id_keep <- 1:length(df_trait_sp_F$value)
- #  # max_first  <- max(df_trait_sp_F$mean[id_keep], na.rm = TRUE)   # Specify max of first y axis
- #  # min_first  <- min(df_trait_sp_F$mean[id_keep], na.rm = TRUE)   # Specify min of first y axis  
- #  max_first  <- max(df_trait_sp_F$value[id_keep], na.rm = TRUE)   # Specify max of first y axis
- #  min_first  <- min(df_trait_sp_F$value[id_keep], na.rm = TRUE)   # Specify min of first y axis
- #  scale_function <- function(x, scale, shift){
- #    return((x)*1)
- #  }
- #  inv_scale_function <-scale_function
- #  if (length(var_scale_regular) > 0) { #https://finchstudio.io/blog/ggplot-dual-y-axes/
- #    # Compute a scale so one variable can be placed on a secondary axis.
- #    # id_keep <- (1:length(df_trait_sp_F$mean))[which(df_trait_sp_F$variable %in% var_scale_regular)]
- #    id_keep <- (1:length(df_trait_sp_F$value))[which(df_trait_sp_F$variable %in% var_scale_regular)]
- #    # max_first  <- max(df_trait_sp_F$mean[id_keep], na.rm = TRUE)   # Specify max of first y axis
- #    # min_first  <- min(df_trait_sp_F$mean[id_keep], na.rm = TRUE)   # Specify min of first y axis
- #    # min_second <- min(df_trait_sp_F$mean[-id_keep], na.rm = TRUE) # Specify min of second y axis
- #    # max_second <- max(df_trait_sp_F$mean[-id_keep], na.rm = TRUE) # Specify max of second y axis    
- #    max_first  <- max(df_trait_sp_F$value[id_keep], na.rm = TRUE)   # Specify max of first y axis
- #    min_first  <- min(df_trait_sp_F$value[id_keep], na.rm = TRUE)   # Specify min of first y axis
- #    min_second <- min(df_trait_sp_F$value[-id_keep], na.rm = TRUE) # Specify min of second y axis
- #    max_second <- max(df_trait_sp_F$value[-id_keep], na.rm = TRUE) # Specify max of second y axis
- #    if(max_second==0) max_second <- max_first
- #    # 
- #    # shift <- min(df_trait_sp_F$mean[id_keep], na.rm = T) - min(df_trait_sp_F$mean[-id_keep], na.rm = T) * max_first/max_second
- #    # scale_factor <- diff(range(df_trait_sp_F$mean[id_keep], na.rm = T)) / diff(range(df_trait_sp_F$mean[-id_keep], na.rm = T))    
- #    shift <- min(df_trait_sp_F$value[id_keep], na.rm = T) - min(df_trait_sp_F$value[-id_keep], na.rm = T) * max_first/max_second
- #    scale_factor <- diff(range(df_trait_sp_F$value[id_keep], na.rm = T)) / diff(range(df_trait_sp_F$value[-id_keep], na.rm = T))
- #    # if (is.nan(scale_factor)) scale_factor <- diff(range(df_trait_sp_F$mean[id_keep][-which(is.nan(df_trait_sp_F$mean[id_keep]))], na.rm = T)) / 
- #    #   diff(range(df_trait_sp_F$mean[-id_keep][-which(is.nan(df_trait_sp_F$mean[-id_keep]))], na.rm = T))
- #    # if (is.infinite(scale_factor) || is.nan(scale_factor) || scale_factor==0) scale_factor <- 1    
- #    if (is.nan(scale_factor)) scale_factor <- diff(range(df_trait_sp_F$value[id_keep][-which(is.nan(df_trait_sp_F$value[id_keep]))], na.rm = T)) / 
- #      diff(range(df_trait_sp_F$value[-id_keep][-which(is.nan(df_trait_sp_F$value[-id_keep]))], na.rm = T))
- #    if (is.infinite(scale_factor) || is.nan(scale_factor) || scale_factor==0) scale_factor <- 1
- #    # scale and shift variables calculated based on desired mins and maxes
- #    # scale = (max_second - min_second)/(max_first - min_first)
- #    # shift = min_first - min_second
- #    # Function to scale secondary axis
- #    scale_function <- function(x, scale, shift){
- #      return ((x-shift)/scale)
- #    }
- #    # Function to scale secondary variable values
- #    inv_scale_function <- function(x, scale, shift){
- #      return ((x)*scale + shift)
- #    }
- #    df_trait_sp_F$value[-id_keep] <-
- #      # inv_scale_function(df_trait_sp_F$mean[-id_keep], scale_factor, shift)
- #      inv_scale_function(df_trait_sp_F$value[-id_keep], scale_factor, shift)
- #  }
- #  if (!(all(1:length(df_trait_sp_F$value) %in% id_keep))) id_keep <- (1:length(df_trait_sp_F$value))[-id_keep]
- #  max_second <- max(c(df_trait_sp_F$value[id_keep]), na.rm = TRUE) # Specify max of second y axis
- #  min_second <- min(c(df_trait_sp_F$value[id_keep]), na.rm = TRUE) # Specify min of second y axis
- #  if (any(is.infinite(max_first)))  max_first  <- max(df_trait_sp_F$value[-id_keep][-which(is.infinite(df_trait_sp_F$value[-id_keep]))], na.rm = TRUE)   # Specify max of first y axis
- #  if (any(is.infinite(max_second)))  max_second  <- max(df_trait_sp_F$value[id_keep][-which(is.infinite(df_trait_sp_F$value[id_keep]))], na.rm = TRUE)   # Specify max of first y axis
- #  if (any(is.infinite(min_first)))  min_first  <- min(df_trait_sp_F$value[-id_keep][-which(is.infinite(df_trait_sp_F$value[-id_keep]))], na.rm = TRUE)   # Specify max of first y axis
- #  if (any(is.infinite(min_second)))  min_second  <- min(df_trait_sp_F$value[id_keep][-which(is.infinite(df_trait_sp_F$value[id_keep]))], na.rm = TRUE)   # Specify max of first y axis
- # # if (!(all(1:length(df_trait_sp_F$mean) %in% id_keep))) id_keep <- (1:length(df_trait_sp_F$mean))[-id_keep]
- # #  max_second <- max(c(df_trait_sp_F$mean[id_keep]), na.rm = TRUE) # Specify max of second y axis
- # #  min_second <- min(c(df_trait_sp_F$mean[id_keep]), na.rm = TRUE) # Specify min of second y axis
- # #  if (any(is.infinite(max_first)))  max_first  <- max(df_trait_sp_F$mean[-id_keep][-which(is.infinite(df_trait_sp_F$mean[-id_keep]))], na.rm = TRUE)   # Specify max of first y axis
- # #  if (any(is.infinite(max_second)))  max_second  <- max(df_trait_sp_F$mean[id_keep][-which(is.infinite(df_trait_sp_F$mean[id_keep]))], na.rm = TRUE)   # Specify max of first y axis
- # #  if (any(is.infinite(min_first)))  min_first  <- min(df_trait_sp_F$mean[-id_keep][-which(is.infinite(df_trait_sp_F$mean[-id_keep]))], na.rm = TRUE)   # Specify max of first y axis
- # #  if (any(is.infinite(min_second)))  min_second  <- min(df_trait_sp_F$mean[id_keep][-which(is.infinite(df_trait_sp_F$mean[id_keep]))], na.rm = TRUE)   # Specify max of first y axis
- #  
- #  # if (length(var_scale_regular) > 0) {
- #  #   scale = abs(max(max_var[-which.max(max_var[, 2]), "mean"], na.rm = T) / quantile(max(max_var[which.max(max_var[, 2]), "mean"], na.rm = T), 0.7))
- #  #   # scale = abs(mean(mean_var[-which.max(mean_var[, 2]), "mean"], na.rm = T) / quantile(mean(mean_var[which.max(mean_var[, 2]), "mean"], na.rm = T), 0.7))
- #  #   # b <- diff(df_trait_sp_F$mean[which(df_trait_sp_F$variable %in% var_scale_regular)], na.rm = TRUE)/
- #  #   #       diff(df_trait_sp_F$mean[-which(df_trait_sp_F$variable %in% var_scale_regular)], na.rm = TRUE)
- #  #   # a <- df_trait_sp_F$mean[which(df_trait_sp_F$variable %in% var_scale_regular)] - df_trait_sp_F$mean[-which(df_trait_sp_F$variable %in% var_scale_regular)]
- #  # }
- #  # if (is.na(scale)) scale = 1
- #  # if (relative_to_ref & abs(scale) < 0.01) scale = sign(scale)*0.05
- # 
- #  # apply scaling to the variable(s) that are not on the regular scale (i.e. those that will be plotted on the secondary axis)
- #  # if (length(unique(df_trait_sp_F$variable)) > 1) {
- #      # df_trait_sp_F[-which(df_trait_sp_F$variable %in% var_scale_regular), "mean"] <-
- #      # df_trait_sp_F[-which(df_trait_sp_F$variable %in% var_scale_regular), "mean"] / scale
- #  # }
- #  
- #  # Friendly facet labels for Fstart.
- #  Fstart_names <- as_labeller(c(
- #    `0.5` = "Fstart 0.5",
-#    `0.75` = "Fstart 0.75",
- #    `1` = "Fstart 1",
- #    `1.25` = "Fstart 1.25",
- #    `1.5` = "Fstart 1.5"
- #  ))
- #  # Decide which variable goes on the secondary axis (if there is one = TRUE)
- #  z_axis <- ifelse(length(var_scale_regular) > 0, TRUE, FALSE)
- #  if(z_axis)  {z_axis <- paste0(mean_var[which((mean_var[, 2] <=(0.8 * (max(mean_var[, 2]))))), 1], collapse="\n")
- #     } else z_axis <- ""
- #  if (nchar(as.character(z_axis[1]))>1) {
- #    name_y <- paste0(mean_var[,1][-which(mean_var[,1] %in% 
- #                            mean_var[which((mean_var[, 2] <=(0.8 * (max(mean_var[, 2]))))), 1])], collapse="\n")
- #  }else  name_y <- paste(mean_var[,1] , collapse="\n")
- #  # limits = c(min(c(df_trait_sp_F$mean, (df_trait_sp_F$mean-df_trait_sp_F$sd)), na.rm = T), 
- #  #                max(c(df_trait_sp_F$mean, (df_trait_sp_F$mean+df_trait_sp_F$sd)), na.rm = T))  
- #  limits = c(min(c(df_trait_sp_F$value), na.rm = T), 
- #                 max(c(df_trait_sp_F$value), na.rm = T))
- #  subtitle <- ifelse(nchar(paste(spec[1], slope_subtitle, sep = " | ", supp_name))>100, FALSE, TRUE)
- #  if (subtitle) {
- #    subtitle = paste(ifelse(length(spec)==1, spec, "all sp"), slope_subtitle, sep = " | ", supp_name)
- #  } else { subtitle = ""}
- #  if (title == "simplified") {title = names(table(df_trait_sp_F$Fmax)) 
- #  } else title <- paste0(ifelse(relative_to_ref, "Relative ", ""), 
- #                         ifelse(proportional, "Proportional", ""),
- #                         paste(trait_name, collapse = " &\n"), " over ", Time1, " and ", Time2)
- #  method = ifelse(max(nchar(trait_name[1]))> 30 || FORCElm==T, "lm", "loess")
- #  
+
  #  # Assemble the plot with loess trends and a secondary axis.
   fill_vector=c("white", "black", "grey", "grey30", "lightyellow", "grey20", "orange", "yellow2", "yellow4")
   shape_vector=c(21:31, 12)  
   line_vector=c(1:9)
-  if(length(fill_vector)>6) {
+  if(length(fill_vector[-which(is.na(names(fill_vector)))])>6) {
     shape_vector <- rep(21, length(fill_vector))
     fill_vector <- rep("white", length(fill_vector))
     line_vector <- rep(1, length(fill_vector))
@@ -785,6 +608,15 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     shape_var <- c("variable", "Fmax")[which.max( c(length(table(df_trait_sp_F_mean_sd$variable)), length(table(df_trait_sp_F_mean_sd$Fmax))))]}
   df_trait_sp_F_mean_sd$variable <- as.factor(df_trait_sp_F_mean_sd$variable)
   if (length(var_x) == 1) {
+    # remove the variables that have only one age class or NAs in the ssdg sums for instance
+    if (any(sapply(df_trait_sp_F_mean_sd$variable, FUN = function(x) (all(is.na(df_trait_sp_F_mean_sd$mean[which(df_trait_sp_F_mean_sd$variable == x)])))))) {
+      v_null <- df_trait_sp_F_mean_sd$variable[which(sapply(df_trait_sp_F_mean_sd$variable, FUN = function(x) {
+        cat(x)
+        (all(is.na(df_trait_sp_F_mean_sd$mean[which(df_trait_sp_F_mean_sd$variable == x)])))
+      }))]
+      add_null <- ifelse(any(is.na(df_trait_sp_F_mean_sd$Fmax)), which(is.na(df_trait_sp_F_mean_sd$Fmax)), c())
+      df_trait_sp_F_mean_sd <- df_trait_sp_F_mean_sd[-c(which(df_trait_sp_F_mean_sd$variable == v_null), add_null),]
+    }
     legend_pos <- resolve_legend_position(
       position_legend = position_legend,
       df = df_trait_sp_F_mean_sd,
@@ -800,7 +632,6 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
       geom_point(data=df_trait_sp_F_mean_sd, aes(shape = .data[[shape_var]], fill = .data[[shape_var]]), 
                 size=2.5, position = position_dodge(0.1),  
                 stroke=1.2)+ #, , stroke=1.5
-      geom_line( group = (df_trait_sp_F_mean_sd[[shape_var]]), lty=as.numeric(line_vectori))+
       scale_shape_manual(name="",values=as.numeric(shape_vectori)) +
       scale_fill_manual(name="",values=as.character(fill_vectori)) +
     # geom_smooth(method = method, se=TRUE, col = "black",
@@ -853,6 +684,9 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
         geom_hline(col="grey50", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=0)+
         geom_hline(col="grey50", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=inv_scale_function(0, scale = scale, shift = shift))
     }
+    p <- p +
+      geom_line(aes(group = .data[[shape_var]]), 
+                lty=as.numeric(line_vectori[nrow(df_trait_sp_F_mean_sd)]))
   } else {
     df_trait_sp_F$Species <- as.factor(df_trait_sp_F$Species)
     legend_pos <- resolve_legend_position(
@@ -918,7 +752,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
 
 
 plot_trait_facet_fmax <- function(df_trait_sp, trait_name, Time1, Time2, relative_to_ref = FALSE, 
-                               spec, age_dim=FALSE, reference_input=NULL, FORCElm=F, title = "regular", legend=NULL, weight,
+                               spec, age_dim=FALSE, reference_input=NULL, FORCElm=F, title = "regular", legend=NULL, #weight,
                                position_legend="auto", facet=F) {
   
   var_x <- ifelse(age_dim, "age", "Fmax")
@@ -983,22 +817,24 @@ plot_trait_facet_fmax <- function(df_trait_sp, trait_name, Time1, Time2, relativ
   ref_data$Fstart <- 1
   
   # Aggregate across replicates for each Fmax/Fstart/variable. 
-  colnames(weight)[which(colnames(weight) == "value")] <- "weight"
-  weight <- weight[,-which(colnames(weight) == "variable")]
-  id_merge <- which((colnames(df_trait_sp_F) %in% colnames(WEIGHT)) & (colnames(df_trait_sp_F) != "variable"))
-  df_trait_sp_F$age <- as.numeric(df_trait_sp_F$age)
-  df_trait_sp_F <- df_trait_sp_F %>%
-    left_join(weight, by = colnames(df_trait_sp_F)[id_merge], relationship = "many-to-many") ##############
+  # colnames(weight)[which(colnames(weight) == "value")] <- "weight"
+  # weight <- weight[,-which(colnames(weight) == "variable")]
+  # id_merge <- which((colnames(df_trait_sp_F) %in% colnames(WEIGHT)) & (colnames(df_trait_sp_F) != "variable"))
+  # df_trait_sp_F$age <- as.numeric(df_trait_sp_F$age)
+  # df_trait_sp_F <- df_trait_sp_F %>%
+  #   left_join(weight, by = colnames(df_trait_sp_F)[id_merge], relationship = "many-to-many") ##############
   if (length(var_x)==1) df_trait_sp_F_mean_sd <- df_trait_sp_F %>%
     group_by(get(var_x), Fstart, variable, Fmax) %>%
-    summarise(mean = weighted.mean(w=weight, value, na.rm = TRUE),
-              sd   = sd(value, na.rm = TRUE))%>%
-    dplyr::select(-weight)  
+    # summarise(mean = weighted.mean(w=weight, value, na.rm = TRUE),
+    summarise(mean = mean(value, na.rm = TRUE),
+              sd   = sd(value, na.rm = TRUE))#%>%
+    # dplyr::select(-weight)  
   if (length(var_x)!=1) df_trait_sp_F_mean_sd <- df_trait_sp_F %>%
     group_by(get(var_x[1]), get(var_x[2]), Fstart, variable, Fmax) %>%
-    summarise(mean = weighted.mean(w=weight, value, na.rm = TRUE),
-              sd   = sd(value, na.rm = TRUE))%>%
-    dplyr::select(-weight)
+    # summarise(mean = weighted.mean(w=weight, value, na.rm = TRUE),
+    summarise(mean = mean(value, na.rm = TRUE),
+              sd   = sd(value, na.rm = TRUE))#%>%
+    # dplyr::select(-weight)
   if (any(colnames(df_trait_sp_F_mean_sd) == "get(var_x)")) colnames(df_trait_sp_F_mean_sd)[which(colnames(df_trait_sp_F_mean_sd) == "get(var_x)")] <- var_x
   
   # Normalize types for plotting and factor ordering.
@@ -1212,7 +1048,7 @@ plot_trait_vs_age_simple <- function(df_trait_sp,
                                      relative_to_ref = FALSE, 
                                      proportional= FALSE, 
                                      scale_factor = 1, 
-                                     weight,
+                                     # weight,
                                      position_legend="auto", 
                                      facet=F, scale_facet=NULL,
                                      chosen_title = NA, 
@@ -1246,15 +1082,16 @@ plot_trait_vs_age_simple <- function(df_trait_sp,
       dplyr::select(-ref_value)
   }
   
-  colnames(weight)[which(colnames(weight)=="value")] <- "weight"
-  if ("variable" %in% colnames(weight)) weight <- weight[, -which(colnames(weight)=="variable")]
-  df_trait_sp <- df_trait_sp %>%
-    left_join(weight, relationship = "many-to-one")
+  # colnames(weight)[which(colnames(weight)=="value")] <- "weight"
+  # if ("variable" %in% colnames(weight)) weight <- weight[, -which(colnames(weight)=="variable")]
+  # df_trait_sp <- df_trait_sp %>%
+    # left_join(weight, relationship = "many-to-one")
   
   
   df_trait_sp_summ <- df_trait_sp %>%
     group_by(Fmax, Fstart, variable, age) %>%
-    summarise(mean = weighted.mean(w=weight, x=value, na.rm = TRUE),
+    # summarise(mean = weighted.mean(w=weight, x=value, na.rm = TRUE),
+    summarise(mean = mean(value, na.rm = TRUE),
               sd   = sd(value, na.rm = TRUE))
   # if ("SSDg" %in% colnames(df_trait_sp)) {
   #   df_trait_sp_summ <- full_join(df_trait_sp_summ, 
@@ -1553,26 +1390,29 @@ estimateMnat <- function(trait_data_full_i){
 
 # estimate the survival curve
 estimateSurv <- function(trait_data_full_i){
-  vec_i <- c(grep(trait_data_full_i$variable, pattern="abundanceByAge"))
+  var_i <- c(var, var2, var3)
+  post = "_deaths"
+  if (!grepl("mean_of", var)) var <- paste0("tot", post)
+  if (grepl("mean_of", var)) var <- paste0(stringr::str_remove(stringr::str_remove(var, pattern = "mean_of_"), pattern= "_per_age"), post)
+  vec_i <- as.vector(unlist(sapply(unique(var_i), FUN = function(x) (which(trait_data_full_i$variable== x)))))
   df_trait_t <- trait_data_full_i[vec_i,]
-  
-  new_df_trait_t = NULL
-  for (F_max in unique(df_trait_t$Fmax)) {
-    df_tempo <- df_trait_t[df_trait_t$Fmax == F_max, ]
-    df_tempo$surv_curve <- df_tempo$value/df_tempo$value[which(df_tempo$age == 1)]
-    if (is.null(new_df_trait_t)){
-      new_df_trait_t <- df_tempo
-    }else{
-      new_df_trait_t <- rbind(new_df_trait_t, df_tempo)
+  if(length(table(df_trait_t$variable)) != 3)  { 
+    if (var == "total_M") cat("normal : ")
+    if (any(grepl(pattern="square", df_trait_t$variable))) df_trait_t <- df_trait_t[-grep(pattern="square", df_trait_t$variable), ]
+    if (length(table(df_trait_t$variable)) != 2) {
+      vec_i <- as.vector(unlist(sapply(var_i, FUN = function(x) (which(trait_data_full_i$variable == x)))))
+      df_trait_t <- trait_data_full_i[vec_i,]
     }
+    if(length(table(df_trait_t$variable)) != 2) cat("too many or too little var")
   }
-  add = "surv_curve"
-  if ("cohort" %in% colnames(trait_data_full_i)) add = c(add, "cohort")
-  df_trait_t <- pivot_longer(new_df_trait_t[, c("Species", "replicate", "Fstart", "Fmax", "age", add)], cols = "surv_curve", values_to = "value", names_to = "variable")
+  df_trait_t   <- (pivot_wider(df_trait_t, names_from = "variable", values_from = "value"))
+  df_trait_t_i <- as.matrix(df_trait_t)
+  df_trait_t[,var] <- (as.numeric(df_trait_t_i[, var_i[1]])/as.numeric(df_trait_t_i[, "total_M"]))*as.numeric(df_trait_t_i[, "Dead"])
+  df_trait_t <- pivot_longer(df_trait_t[, c("Species", "replicate", "Fstart", "Fmax", "age", var)], cols = var, values_to = "value", names_to = "variable")
+  
   
   return(df_trait_t)
 }
-
 
 # estimate the individual weight
 estimateWei <- function(trait_data_full_i){
@@ -1620,6 +1460,24 @@ estimate_BinaryOp <- function(trait_data_full_i, var, operator = "/") {
     
     if (length(table(df_trait_t$variable)) != 2) 
       cat("too many or too little var\n")
+  }
+  
+  vari=NULL
+  # do we have the thirty age classes as expected ? If not, append matrix 30 times to uniformise dataset structure
+  if (length(table(df_trait_t$age[which(df_trait_t$variable == unique(df_trait_t$variable)[1])])) != 
+      length(table(df_trait_t$age[which(df_trait_t$variable == unique(df_trait_t$variable)[2])]))){
+    
+    if (length(table(df_trait_t$age[which(df_trait_t$variable == unique(df_trait_t$variable)[1])]))%in%c(1,0)) vari=1
+    if (length(table(df_trait_t$age[which(df_trait_t$variable == unique(df_trait_t$variable)[2])]))%in%c(1,0)) vari=2
+    if (is.null(vari)) stop("var to work with:", var, ", dataset variables", paste(unique(df_trait_t$variable), collapse=" "))
+    df_var_i <- df_trait_t[which(df_trait_t$variable == unique(df_trait_t$variable)[vari]), ]
+    df_else <- df_trait_t[which(df_trait_t$variable != unique(df_trait_t$variable)[vari]), ]
+    df_var = NULL
+    for (age in unique(df_else$age)) {
+      df_var_i$age <- age
+      df_var <- rbind(df_var, df_var_i)
+    }
+    df_trait_t = rbind(df_var, df_else)
   }
   
   # Compute on long format directly to avoid repeated pivot_wider/pivot_longer cycles.
@@ -1691,13 +1549,42 @@ estimateMnumber <- function(trait_data_full_i, var, var2=c("total_M"), var3=c("D
   return(df_trait_t)
 }
 
+
+# estimate the survival curve
+estimateSurvnumber <- function(trait_data_full_i, var, var2=c("total_M"), var3=c("Dead"),  var4=c("mean_of_abundanceByAge_per_age")){
+  var_i <- c(var, var2, var3, var4)
+  post = "_surv"
+  if (!grepl("mean_of", var)) var <- paste0("tot", post)
+  if (grepl("mean_of", var)) var <- paste0(stringr::str_remove(stringr::str_remove(var, pattern = "mean_of_"), pattern= "_per_age"), post)
+  vec_i <- as.vector(unlist(sapply(unique(var_i), FUN = function(x) (which(trait_data_full_i$variable== x)))))
+  df_trait_t <- trait_data_full_i[vec_i,]
+  if(length(table(df_trait_t$variable)) != 4 & !(var == "tot_surv" & length(table(df_trait_t$variable)) == 3))  { 
+    if (var == "total_M") cat("normal : ")
+    if (any(grepl(pattern="square", df_trait_t$variable))) df_trait_t <- df_trait_t[-grep(pattern="square", df_trait_t$variable), ]
+    if (length(table(df_trait_t$variable)) != 2) {
+      vec_i <- as.vector(unlist(sapply(var_i, FUN = function(x) (which(trait_data_full_i$variable == x)))))
+      df_trait_t <- trait_data_full_i[vec_i,]
+    }
+    if(length(table(df_trait_t$variable)) != 2) cat("too many or too little var")
+  }
+  df_trait_t   <- (pivot_wider(df_trait_t, names_from = "variable", values_from = "value"))
+  df_trait_t_i <- as.matrix(df_trait_t)
+  df_trait_t[,var] <- as.numeric(df_trait_t_i[, grep("abund", colnames(df_trait_t_i))]) - (as.numeric(df_trait_t_i[, var_i[1]])/as.numeric(df_trait_t_i[, "total_M"]))*as.numeric(df_trait_t_i[, "Dead"])
+  df_trait_t <- pivot_longer(df_trait_t[, c("Species", "replicate", "Fstart", "Fmax", "age", var)], cols = var, values_to = "value", names_to = "variable")
+  
+  
+  return(df_trait_t)
+}
+
+
 # estimate the sum  
-estimateSum <- function(trait_data_full_i, var){
+estimateSum <- function(trait_data_full_i, var, soustraction=F){
   var_i <- unlist(stringr::str_split(pattern = "\nsum", var))
   vec_i <- as.vector(unlist(sapply(var_i, FUN = function(x) (which(trait_data_full_i$variable== x)))))
   df_trait_t <- trait_data_full_i[vec_i,]
   
   df_trait_t <- pivot_wider(df_trait_t, names_from = "variable", values_from = "value") 
+  if (soustraction == T) df_trait_t[, which(colnames(df_trait_t)== var_i[2])] <- -df_trait_t[, which(colnames(df_trait_t)== var_i[2])]
   df_trait_t[, var] <- df_trait_t[, which(colnames(df_trait_t)== var_i[1])]+df_trait_t[, which(colnames(df_trait_t)== var_i[2])]
   df_trait_t <- pivot_longer(df_trait_t[, c("Species", "replicate", "Fstart", "Fmax", "age", var)], cols = var, values_to = "value", names_to = "variable")
   

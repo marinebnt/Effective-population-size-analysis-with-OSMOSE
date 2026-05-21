@@ -9,9 +9,9 @@ theme_set(theme_classic())
 
 
 main = "New_gpu_conf.R" # config file
-source("osmose-ns-v4.4.1_clim/R/functions/source.R") # load config and key parameters and functions
-source("osmose-ns-v4.4.1_clim/R/functions/functions_key_traits.R") # plots against Fmax
-pathout <- paste0("osmose-ns-v4.4.1_clim/output/PLOTS/Trait_variables_by_cohort_by_age2/otherplots")
+source("R/functions/source.R") # load config and key parameters and functions
+source("R/functions/functions_key_traits.R") # plots against Fmax
+pathout <- paste0("output/PLOTS/Trait_variables_by_cohort_by_age2/otherplots")
 if (!dir.exists(pathout)) dir.create(pathout, recursive = T)
 
 
@@ -37,21 +37,18 @@ df <-as.data.frame(sapply(c("lifespan", "mortality.additional.larva.rate", "pred
              FUN = function(x) (unlist(osmose::get_par(conf, x)))))
 rownames(df) <- get_par(conf, "species.name")[1:nrow(df)]
 df$"Ne/N_1" <- ifelse(rownames(df) %in% 
-                               c("Hake", "Whiting", "Saithe"), "increasing",
+                               c("Hake", "Whiting", "Saithe", "Sandeel", "AtlanticHerring"), "increasing",
                       ifelse(rownames(df) %in% 
-                               c("AtlanticMackerel", "CommonDab", "GreyGurnard", 
-                                 "EuropeanPlaice"), "decreasing",
+                               c("CommonDab", "GreyGurnard", "EuropeanPlaice"), "decreasing",
                       ifelse(rownames(df) %in% 
-                              c("NorwayPout", "Sandeel", "CommonSole", 
-                                "AtlanticHerring"), "constantVkdecreasing", "constant"))) # "HorseMackerel", "CommonSole", "Haddock"
+                              c("NorwayPout"), "constantVkdecreasing", "constant"))) # "HorseMackerel", "CommonSole", "Haddock"
 df$"Ne/N_2" <- ifelse(rownames(df) %in% 
-                        c("Hake", "Whiting", "Saithe"), "increasing",
+                        c("Hake", "Whiting", "Saithe", "Sandeel", "AtlanticHerring"), "increasing",
                       ifelse(rownames(df) %in% 
-                               c("AtlanticMackerel", "CommonDab", "GreyGurnard", 
-                                 "EuropeanPlaice"), "decreasing",
+                               c("CommonDab", "GreyGurnard", "EuropeanPlaice"), "decreasing",
                              ifelse(rownames(df) %in% 
-                                      c("NorwayPout", "Sandeel", "EuropeanSprat", 
-                                        "AtlanticHerring", "HorseMackerel", "CommonSole", "Haddock", "AtlanticCod"), "constant", "out"))) # "HorseMackerel", "CommonSole", "Haddock"
+                               c("NorwayPout", "CommonSole", "AtlanticCod", "EuropeanSprat", "Haddock", "HorseMackerel",
+                                 "AtlanticMackerel"), "constant", "out"))) # "HorseMackerel", "CommonSole", "Haddock"
 
 
 df <- df[-which(rownames(df) == "Shrimp"),] #remove the shrimp

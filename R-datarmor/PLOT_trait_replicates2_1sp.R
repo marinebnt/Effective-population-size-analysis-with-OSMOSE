@@ -73,7 +73,7 @@ for (sp in SP){ # LAUNCH FOR EACH SPECIES
   age_Mature_df_all = NULL
   for (Fmax in multipliers){
     Fmax_dir <- sp_dir[grep(pattern = paste0("Fmax", Fmax, "_"), sp_dir)]
-    for (Fstart in multipliers){
+    for (Fstart in 1){
       dir <- Fmax_dir[grep(pattern = paste0("Fstart", Fstart, "_sp", sp_i, ".R"), Fmax_dir)]
 
       if (length(list.files(dir))<1){

@@ -8,9 +8,14 @@ repo        = "Simu_LONG"
 multip_name = "y"
 multipliers = c(1,0.5,0.75,1.25,1.5)
 
-trait_dim= c("SSB", "sizeMature", "abundanceMature", "fecundityByAge", "meanSizeByAge", 
-     "MpredbyY", "MstarbyY", "MnatbyY", "FbyY", "MforbyY", "mortality"
-     "abundanceByAge", "biomass", "mortality", "school")
+trait_dim= c("SSB", "sizeMature", "abundanceMature", "fecundityByAge", "meanSizeByAge",
+      "MpredbyY", "MstarbyY", "MnatbyY", "FbyY", "MforbyY", "mortality", "biomass")
+#     "abundanceByAge", "biomass", "mortality", "school")
+
+trait_dim= c("SSB", "sizeMature", "abundanceMature", "fecundityByAge", "meanSizeByAge",
+                 "MpredbyY", "MstarbyY", "MnatbyY", "FbyY", "MforbyY",
+                 "abundanceByAge", "biomass", "mortality", "school")
+
 
 ideal_order_factor <- paste0("Fmax=", rep(c(0.5,0.75,1,1.25,1.5), 5),
                              " Fstart=", c(rep(0.5, 5),rep(0.75, 5),rep(1, 5),rep(1.25, 5),rep(1.5, 5)))
@@ -43,7 +48,7 @@ for (sp in SP){
   age_Mature_df_all = NULL
   for (Fmax in multipliers){
     Fmax_dir <- sp_dir[grep(pattern = paste0("Fmax", Fmax, "_"), sp_dir)]
-    for (Fstart in multipliers){
+    for (Fstart in 1){
       dir <- Fmax_dir[grep(pattern = paste0("Fstart", Fstart, "_sp", sp_i, ".R"), Fmax_dir)]
 
       if (length(list.files(dir))<1){
@@ -285,12 +290,13 @@ for (sp in SP){
         data_complete <- rbind(data_complete, data_all)
       }
       # p(paste0("\n\t--->done: folder Fmax", Fmax, " Fstart", Fstart, " sp", sp, "\n"))
-    }#Fstart
+
     data_complete <- (data_complete)
     pathoutputRDATA <-paste0(pathout, "/RDATA/Fmax", Fmax, "_Fstart", Fstart, "_sp", sp)
-    if (!dir.exists(pathoutputRDATA)){dir.create(pathoutputRDATA, recursive = T)}  
+    if (!dir.exists(pathoutputRDATA)){dir.create(pathoutputRDATA, recursive = T)}
     save(data_complete, file=paste0(pathoutputRDATA, "/data_traits_summary.RData"))
-    data_complete <- NULL
+    data_complete <- NULL    
+    }#Fstart
   }#Fmax
   
   # PLOT the mean and the std deviation  ----------------

@@ -21,6 +21,7 @@ library(gridExtra)   # pour arranger plusieurs plots
 # library(GGally)
 library(tidyverse)
 library(matrixStats)
+library(ggpubr)
 
 source(paste0("R/functions/functions_for_Ne.R"))
 source(file.path("R/functions/functions_Ne.R"))

@@ -1,8 +1,10 @@
 library(ggplot2)
+library(osmose)
+source("R/functions/source.R")
 
-path <- "osmose-ns-v4.4.1_clim/new_config"
-path_init <- 'osmose-ns-v4.4.1_clim/output/PLOTS/FINAL_Ne_Htz_mature_short'
-nfiles <- list.files(path, pattern = ".csv")
+path <- "../osmose-ns/osmose-ns-v4.4.1_clim/new_config"
+path_init <- '../osmose-ns/osmose-ns-v4.4.1_clim/output/PLOTS/FINAL_Ne_Htz_mature_short'
+infiles <- list.files(path, pattern = ".csv")
 inifiles <- list.files(path_init, pattern = ".RData", recursive = TRUE, full.names = TRUE)
 inifiles <- inifiles[grep(pattern = "INIT2.RData", inifiles)]
 head(nfiles)
@@ -18,13 +20,15 @@ sp_vec = c("AtlanticHerring",  "AtlanticMackerel", "Sandeel",  "EuropeanSprat", 
 plot_sp <- list()
 gene_l_sp_coho <- c()
 gene_l_sp_year <- c()
+data_surv_curve <- list()
 for (species in sp_vec){
 
   colnames_df <- c("length", "F", "Fmax_Fstart")
   dataset_plot <- data.frame(matrix(nrow=0, ncol = length(colnames_df)))
   colnames(dataset_plot) = colnames_df
-  id_sp <- grep(pattern = species, sp_vec)
+  id_sp <- grep(pattern = species, sp_vec)-1
   id_sp_files <- grep(pattern = paste0("sp", id_sp, ".csv"), nfiles)
+  max_l <- as.numeric(get_par(conf, paste0("linf.sp", id_sp))[1])
   for (fmax in multip){
     for (fstart in 1){ #multip
 
@@ -35,7 +39,14 @@ for (species in sp_vec){
       file_chosen <- nfiles[as.numeric(names(files_id)[which(files_id == 3)])]
       tab <- read.csv(file.path(path, file_chosen))
       colnames(tab) <- as.numeric(stringr::str_remove(colnames(tab), pattern = "X"))
-
+      by=as.numeric(colnames(tab)[2])-as.numeric(colnames(tab)[1])
+      add_cols <- round(max_l-max(as.numeric(colnames(tab)),na.rm=T))/by
+      colname_max <- max(as.numeric(colnames(tab)), na.rm=T)
+      if (add_cols > 0) {
+        tab <- cbind(tab, matrix(rep(tab[,ncol(tab)], add_cols), nrow=nrow(tab)))
+        colnames(tab) <- seq(as.numeric(colnames(tab)[1]), colname_max+add_cols*by, by=by)
+      }
+      
       # save F pressure in the dataset to plot
       add_mat <-  matrix(rep(NA, ncol(tab)*ncol(dataset_plot)), nrow=ncol(tab), ncol=ncol(dataset_plot))
       colnames(add_mat) <- colnames(dataset_plot)
@@ -65,29 +76,32 @@ for (species in sp_vec){
 
  # clean dataset to plot 
   # normalize F by max F at Fmax=1 and keep length up to the max length at F=1
-  max_length <- max(dataset_plot$length[which(dataset_plot$Fmax_Fstart == paste0("Fmax=", 1, "_Fstart=", 1))])
+  max_length <- max(dataset_plot$length[which(dataset_plot$Fmax_Fstart == paste0("Fmax=", 1, "_Fstart=", 1))], na.rm=T)
   max_F <- max(dataset_plot$F[which(dataset_plot$Fmax_Fstart == paste0("Fmax=", 1, "_Fstart=", 1))])
   #normalize F
-  dataset_plot$F <- dataset_plot$F/max_F
+  dataset_plot$F_sc <- dataset_plot$F/max_F
   # keep only length up to the max length at F=1 
   dataset_plot <- dataset_plot[which(dataset_plot$length <= max_length), ]
   # order factor levels
   dataset_plot$Fmax_Fstart        <- factor(as.factor(dataset_plot$Fmax_Fstart), levels = ideal_order_factor) 
   dataset_plot$Fmax <- unlist(stringr::str_split(dataset_plot$Fmax_Fstart, pattern = "_Fstart"))[seq(1,(2*length(dataset_plot$Fmax_Fstart)), by=2)]
  #produce plots
-  plot_sp[[species]] <- ggplot(dataset_plot, aes(x=length, y=F))+ 
+  plot_sp[[species]] <- ggplot(dataset_plot, aes(x=length, y=F_sc))+ 
         geom_line()+
         theme_minimal()+
         theme(text = element_text(size = 17))+
         facet_wrap(~ Fmax, ncol=5, nrow=1)+
-        geom_vline(aes(xintercept = gene_l_sp_coho[species]), linetype = 2, colour = "darkred")+
         labs(title=paste0("Fishing selectivity curves for ", species, 
         "\nMean generation length by cohort: ", round(gene_l_sp_coho[species], 2))) #,        "\nMean generation length by year: ", round(gene_l_sp_year[species], 2)
 
+  data_surv_curve[[species]] <- dataset_plot
+  
 }# species
 
 #save
-pathout <- paste0("osmose-ns-v4.4.1_clim/output/PLOTS/selectivity_curves_per_Fmax")
+pathout <- paste0("output/PLOTS/selectivity_curves_per_Fmax")
+save(data_surv_curve, file=paste0(pathout, "dataset_surv-curve.RData"))
+
 if(!dir.exists(pathout)) {dir.create(pathout, recursive = T)}
 for (species in sp_vec){
   png(file = paste0(pathout, "/plot_Fpressure_",species, ".png"), width = 1500, height = 350)
