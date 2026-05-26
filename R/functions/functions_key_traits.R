@@ -308,6 +308,7 @@ format_slope_subtitle <- function(df, x_col = "Fmax", y_col = "mean", group_col 
 # shorter and more explicit variable names
 improve_vriable_names <- function(vector){
   vector <- stringr::str_replace(vector, pattern="SSDgx_Mpred", replacement = "Predation SSD\u0262 (\u0394²Dead_Pred))")
+  vector <- stringr::str_replace(vector, pattern="SSDgx_Mstar", replacement = "Starvation SSD\u0262 (\u0394²Dead_Starv))")
   vector <- stringr::str_replace(vector, pattern="SSDgx_F", replacement = "Fisheries SSD\u0262 (\u0394²(Dead_F))")
   vector <- stringr::str_replace(vector, pattern="SSDgx_Mnat", replacement = "Natural SSD\u0262 (\u0394²(Dead_Natural))")
   vector <- stringr::str_replace(vector, pattern="SSDgx\nDivNumerator_N_alpha", replacement = "SSD\u0262/N\u03B1 (\u0394²Dead/N\u03B1)")
@@ -600,7 +601,6 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     for (i in colnames(tempo)) shape_vectori[tempo[,i]] <- shape_vector[i]
     for (i in colnames(tempo)) line_vectori[tempo[,i]] <- line_vector[i]
   }
-  
 
   shape_var <- c(length(table(df_trait_sp_F_mean_sd$variable))>1, length(table(df_trait_sp_F_mean_sd$Fmax))>1)
   if (all(shape_var)>0) {shape_var <- "variable" 
@@ -628,7 +628,10 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     )
     p <- ggplot(df_trait_sp_F_mean_sd, aes(x = .data[[var_x]], y = mean,
                 group = interaction(variable, Fmax))) +
-      geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), position = position_dodge(0.1), width = 0.2, colour="grey60")+
+      geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd, group = .data[[shape_var]], 
+                        alpha=as.numeric(.data[[shape_var]])/10), 
+                    show.legend = FALSE, 
+                    position = position_dodge(0.1), width = 0.2)+
       geom_point(data=df_trait_sp_F_mean_sd, aes(shape = .data[[shape_var]], fill = .data[[shape_var]]), 
                 size=2.5, position = position_dodge(0.1),  
                 stroke=1.2)+ #, , stroke=1.5
@@ -681,12 +684,14 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     
     if (relative_to_ref == T | proportional == T){
       p <- p + 
-        geom_hline(col="grey50", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=0)+
-        geom_hline(col="grey50", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=inv_scale_function(0, scale = scale, shift = shift))
+        theme(legend.position = "inside",
+              legend.position.inside = c(1,1),
+              legend.spacing.y = unit(0, "mm")) +
+        geom_hline(col="grey80", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=0)+
+        geom_hline(col="grey80", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=inv_scale_function(0, scale = scale, shift = shift))
     }
     p <- p +
-      geom_line(aes(group = .data[[shape_var]]), 
-                lty=as.numeric(line_vectori[nrow(df_trait_sp_F_mean_sd)]))
+      geom_line(aes(group = .data[[shape_var]], alpha=as.numeric(.data[[shape_var]])/10), show.legend = FALSE)
   } else {
     df_trait_sp_F$Species <- as.factor(df_trait_sp_F$Species)
     legend_pos <- resolve_legend_position(

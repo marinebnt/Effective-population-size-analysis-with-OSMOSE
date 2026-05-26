@@ -24,7 +24,6 @@ pathoutputRDATA = paste0(PATHOUT, "/RDATA_MATURE")
 if(!dir.exists(pathoutputRDATA)) dir.create(pathoutputRDATA, recursive = T)
 base_dir <- paste0(path, "INIT")
 base_path = paste0(simu_repo, "output/SIMULATIONS/Trait_variables_by_cohort_by_age2")
-folders  <- list.dirs(base_dir, recursive = F) # files INIT2 with raw Ne datasets
 # folders_long <- list.dirs(paste0(path_long, "INIT"), recursive = F)
 
 folders_traits_c <- paste0(simu_repo, "output/SIMULATIONS/Trait_variables_by_cohort/RData/")
@@ -45,12 +44,11 @@ path = path[[ifelse(dataset=="data_Ne", 1, 2)]]
 
 ## % activate if needed : will produce .RData files in the folder paste0(simu_repo, "/output/PLOTS/FINAL_Ne_Htz_mature/")
 ## % 1 file per species, with the dataset at the scale of the cohorts, starting at age = alpha (first mature age)
-#dataset_Ne_mean_cohorts(species, FORCE, folders, path, Time1, Time2)
+dataset_Ne_mean_cohorts(species, FORCE, path, Time1, Time2)
 
 ## loading the dataset of traits averaged over cohorts Time1 to Time2, and reorganised to remove age=0, add reassign natural mortality as add mortality, and estimate natural mortality
 pathout   = paste0(base_path, "/otherplots")
-if (!dir.exists(pathout)) dir.create(pathout, recursive = T)
-data_complete_c <- load_trait_df(base_path)
+data_complete_c <- load_trait_df(base_path = base_path, pathout = pathoutputRDATA)
   
 
 

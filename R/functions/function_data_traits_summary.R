@@ -24,13 +24,13 @@
 #'   )
 #' }
 
-data_traits_summary <- function(base_path) {
+data_traits_summary <- function(base_path, pathout) {
   
   # Initialize combined dataframe
   data_combined <- NULL
   
   # Get path to RDATA subfolder
-  rdata_path <- file.path(base_path, "RDATA")
+  rdata_path <- file.path(pathout)
   
   # Check if directory exists
   if (!dir.exists(rdata_path)) {
@@ -38,7 +38,7 @@ data_traits_summary <- function(base_path) {
   }
   
   # List all subdirectories in RDATA folder (e.g., Fmax1.5_Fstart1.5_spAtlanticCod)
-  subdirs <- list.dirs(rdata_path, recursive = FALSE, full.names = TRUE)
+  subdirs <- list.dirs(file.path(base_path, "RDATA"), recursive = FALSE, full.names = TRUE)
   
   if (length(subdirs) == 0) {
     warning(paste("No subdirectories found in:", rdata_path))
@@ -136,14 +136,13 @@ data_traits_summary <- function(base_path) {
   suffix <- gsub("_", "_", suffix)  # keep underscores
   
   # Build save path
-  save_dir <- file.path(dirname(dirname(base_path)), "RDATA")
-  if (!dir.exists(save_dir)) {
-    dir.create(save_dir, recursive = TRUE)
+  if (!dir.exists(pathout)) {
+    dir.create(pathout, recursive = TRUE)
   }
   
-  save_file <- file.path(save_dir, paste0("summary_trait_", suffix, ".RData"))
+  save_file <- file.path(pathout, paste0("summary_trait_", suffix, ".RData"))
   save(data_combined, file = save_file)
-  cat("\nData saved to:", save_file, "\n")
+  cat("\nData saved to:", pathout, "\n")
   
   return(data_combined)
 }
@@ -154,13 +153,15 @@ data_traits_summary <- function(base_path) {
 ## RAW Ne & associated variables, dimensions : cohort, age, replicate, Fstart, Fmax, Species
 ### produce dataset reading multiple .RData to make 1 dataframe, stored as a .RData file ----------
 
-dataset_Ne_mean_cohorts <- function(species, FORCE, folders, path, Time1, Time2){
+dataset_Ne_mean_cohorts <- function(species, FORCE, pathdata, pathout, Time1, Time2){
   
+  base_dir <- paste0(pathdata, "INIT")
+  folders  <- list.dirs(base_dir, recursive = F) # files INIT2 with raw Ne datasets
   full_dataset = list()
   full_dataset_age = list()
   name_out = ifelse(dataset=="data_Ne", "Complete_INIT2", "Complete_INIT2_raw")
   
-  for (f_i in folders[[ifelse(dataset=="data_Ne", 1, 2)]]){
+  for (f_i in folders){
     cat(f_i, "\n")
     
     Fmax   <- as.numeric(stringr::str_split(stringr::str_split(f_i, pattern="Fmax")[[1]][2], pattern="_Fstart")[[1]][1])
@@ -168,12 +169,14 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, folders, path, Time1, Time2)
     
     if (Fstart != 1) next
     
+    cat("Loading   ",  f_i)
+    
     load(list.files(f_i, full.names = T))
     dataNe <- INIT2[[dataset]]
     rm(INIT2)
     
     for (sp in names(dataNe)[1]){
-      if (file.exists(paste0(path, "/", name_out, sp_i, ".RData")) && FORCE !=T){
+      if (file.exists(paste0(pathout, "/", name_out, sp_i, ".RData")) && FORCE !=T){
         next
       }else{
         
@@ -285,7 +288,7 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, folders, path, Time1, Time2)
   }# folder dimension (Fmax*Fstart)
   #----- MERGE raw variables without age dimension AND variables with age dimension ---#
   for (sp_i in names(full_dataset_age)){
-    if (file.exists(paste0(path, "/", name_out, sp_i, ".RData")) && FORCE !=T){
+    if (file.exists(paste0(pathout, "/", name_out, sp_i, ".RData")) && FORCE !=T){
       next
     }else{
       data_out <- full_dataset_age[[sp_i]] %>%
@@ -302,7 +305,14 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, folders, path, Time1, Time2)
       # save all
       complete = list("complete_without_age"=final_dataset, "complete_with_age"=final_dataset_age)
       
-      save(complete, file=paste0(path, "/", name_out, sp_i, ".RData"))
+      save(complete, file=paste0(pathout, "/", name_out, sp_i, ".RData"))
+      
+      cat("\nSuccessfully combined data related to Ne by age:\n")
+      cat("  - Total rows:", nrow(final_dataset_age), "\n")
+      cat("  - Unique species:", length(unique(final_dataset_age$Species)), "\n")
+      cat("  - Unique variables:", length(unique(final_dataset_age$variable)), "\n")
+      
+      cat("\nData saved to:", pathout, "/", name_out, sp_i, ".RData", "\n")
     }
   }
 }
@@ -311,19 +321,19 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, folders, path, Time1, Time2)
 
 # RAW TRAITS, dimensions :  age, replicate, Fish_press, Species, TRAIT
 
-load_trait_df <- function(base_path){
+load_trait_df <- function(base_path, pathout){
    # load dataset
    data_complete_sp = NULL
    data_complete_c = NULL
    folder_name <- basename(base_path)
    suffix <- gsub("Trait_variables_by_", "", folder_name)
    suffix <- gsub("_", "_", suffix)  # keep underscores
-   save_dir <- file.path(dirname(dirname(base_path)), "RDATA")
+   save_dir  <- file.path(pathout)
    save_file <- file.path(save_dir, paste0("summary_trait_", suffix, ".RData"))
    if (!dir.exists(save_dir)){dir.create(save_dir, recursive = T)}
    FORCE=F
    if (!file.exists(save_file) || FORCE==T){
-     data_complete_c <- data_traits_summary(base_path)
+     data_complete_c <- data_traits_summary(base_path, pathout = pathout)
    } else {
      data_complete_c = get(load(file=save_file))
    }
