@@ -208,7 +208,7 @@ list_bio <- list("rel_biomassplot"=rel_biomassplot, "biomassplot"=biomassplot)
 #### PLOT 1- NE/N VS FMAX + Biomass VS FMAX ------------------
 
 traits_to_plot <- list(c("generation_length", "Vk_point", "T/Vk."), 
-                       c("Ne_N_alpha", "NT", "Numerator_N_alpha", "Ne_N_alpha\nDivNT"))
+                       c("Ne_N_alpha", "NT", "Ne_N_alpha\nDivNT"))
 
 
 Ne_plot_list = list()
@@ -415,7 +415,7 @@ for (sp in species){
     plot_biom = ifelse(relative_to_ref, "rel_biomassplot", "biomassplot")
     plot_biom = ifelse(relative_to_ref, "biomassplot", "biomassplot")
     
-    v= c("SSDgx", "SSDgx\nDivNumerator_N_alpha")
+    v= c("SSDgx")
     df_trait_sp_plot <- df_trait_sp[which(df_trait_sp$variable %in% v),]
     ssdg <-  add_SSDg(df=df_trait_sp_plot)#, weight=WEIGHT)
     ssdg$variable <- improve_vriable_names(ssdg$variable)
@@ -425,7 +425,33 @@ for (sp in species){
     
     inset.tot.F.Nat[[plot_name]][[sp]][[paste(t, collapse="_")]] <- ggplot(ssdg, group = (variable)) +
       geom_boxplot(aes(y=SSDg, x=Fmax)) +
-      facet_wrap(~variable, scales="free", ncol=2) +
+      facet_wrap(~variable, scales="free", ncol=2) + #
+      labs(title=sp, y="")+ #, y="SSD\u0262"
+      theme(strip.background = element_rect(fill="white"),
+            panel.background = element_rect(fill = "white", colour = "grey50"),
+            plot.title = element_text(hjust = 0.5),
+            axis.text.x = element_text(angle = 60, hjust = 1),
+            axis.text = element_text(colour = 1, size = 9),
+            panel.border = element_rect(colour = "black", fill=NA),
+            strip.text = element_text(size = 10))
+    
+    result <- plot_trait_vs_fmax(df_trait_sp_plot, trait_name = t, relative_to_ref = relative_to_ref, 
+                                 Time1 = Time1, Time2=Time2, #weight=WEIGHT, 
+                                 spec = sp, age_dim = T, sp_dim = F, reference_input = NULL, 
+                                 FORCElm = FALSE, nrow = 1, facet = T, position_legend = "right")
+    plot_ssdg_age[[plot_name]][[sp]][[paste(t, collapse="_")]] <- result
+    
+    v= c("SSDgx\nDivNumerator_N_alpha")
+    df_trait_sp_plot <- df_trait_sp[which(df_trait_sp$variable %in% v),]
+    ssdg <-  add_SSDg(df=df_trait_sp_plot)#, weight=WEIGHT)
+    ssdg$variable <- improve_vriable_names(ssdg$variable)
+    df_trait_sp_plot$variable  <- improve_vriable_names(df_trait_sp_plot$variable)
+    t <- improve_vriable_names(v)
+    ssdg$SSDg <- round(ssdg$SSDg, 1)
+    
+    inset.tot.F.Nat[[plot_name]][[sp]][[paste(t, collapse="_")]] <- ggplot(ssdg, group = (variable)) +
+      geom_boxplot(aes(y=SSDg, x=Fmax)) +
+      facet_wrap(~variable, scales="free", ncol=2) + #
       labs(title=sp, y="")+ #, y="SSD\u0262"
       theme(strip.background = element_rect(fill="white"),
             panel.background = element_rect(fill = "white", colour = "grey50"),
@@ -452,7 +478,7 @@ for (sp in species){
     
     inset.tot.F.Nat[[plot_name]][[sp]][[paste(t, collapse="_")]] <- ggplot(ssdg, group = (variable)) +
       geom_boxplot(aes(y=SSDg, x=Fmax)) +
-      facet_wrap(~variable, scales="free", ncol=2) +
+      facet_wrap(~variable, ncol=2) + #scales="free", 
       labs(title=sp, y="")+ #, y="SSD\u0262"
       theme(strip.background = element_rect(fill="white"),
             panel.background = element_rect(fill = "white", colour = "grey50"),
@@ -473,7 +499,7 @@ for (sp in species){
     
     inset.tot.F.Nat[[plot_name]][[sp]][[paste(t, collapse="_")]] <- ggplot(ssdg, group = (variable)) +
       geom_boxplot(aes(y=SSDg, x=Fmax)) +
-      facet_wrap(~variable, scales="free", ncol=2) +
+      facet_wrap(~variable, ncol=2) + #scales="free", 
       labs(title=sp, y="")+ #, y="SSD\u0262"
       theme(strip.background = element_rect(fill="white"),
             panel.background = element_rect(fill = "white", colour = "grey50"),
@@ -510,18 +536,8 @@ for (sp in species){
   ages_to_remove <- ages_to_remove[which(ages_to_remove == max(ages_to_remove))]
   final_dataset_age <- final_dataset_age[-which(final_dataset_age$age %in% as.numeric(names(ages_to_remove))), ]
   
-  # # avoid the estimation bias of very populations of very low size
-  # if (any(((final_dataset_age[which(final_dataset_age$variable == "abundanceByAge"), "value"])<10))){
-  #   final_dataset_age <- pivot_wider(final_dataset_age, names_from = "variable", values_from = "value")
-  #   final_dataset_age <- final_dataset_age[-which((final_dataset_age$abundanceByAge)<10), ]
-  #   final_dataset_age <- pivot_longer(final_dataset_age, cols = -c("age", "replicate", "Fmax", "Fstart", 'Species', "cohort"), names_to = "variable", values_to = "value")
-  # }
-  
   #### traits to plot ####
-  traits_sp_to_plot = list(c("eggNumber_sc", "eggNumber_sc\nDivNumerator_N_alpha", "b_rate_sc", 
-                             "kx_bar", "Delta", "Deltasquare", 
-                             "Dead", "Dead\nDivNumerator_N_alpha", "Numerator_N_alpha"),
-                           c("eggNumber_sc", "Numerator_N_alpha"))
+  traits_sp_to_plot = list(c("Numerator_N_alpha","Deltasquare"), c("Dead","Deltasquare"), c("Numerator_N_alpha"))
   df_trait_sp <- final_dataset_age %>% filter(Species == sp, Fstart == 1)
   rm(final_dataset_age)
   
@@ -530,13 +546,6 @@ for (sp in species){
     df_trait_t    <- estimateDiv(trait_data_full_i = df_trait_sp, var=v)
     df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
   }
-  
-  # weight
-  # weight_df <- build_weight_df(df = df_trait_sp, weight_var = "abundanceByAge",
-  #                              key_cols = c("replicate", "Species", "Fmax", "Fstart", "age", "cohort"))
-  
-  
-  
   
   for (trait_i in traits_sp_to_plot){
     
@@ -578,25 +587,44 @@ for (sp in species){
       df_trait_sp_plot$Fmax <- as.factor(df_trait_sp_plot$Fmax)
       # ref_data$variable             <- improve_vriable_names(ref_data$variable)
       
+      df_trait_sp_plot$age[which(is.na(df_trait_sp_plot$age))] <- min(df_trait_sp_plot$age, na.rm = T)
+      ssdg <-  add_SSDg(df=df_trait_sp_plot, relative=relative_to_ref)#, weight=WEIGHT)
+      ssdg$variable <- improve_vriable_names(ssdg$variable)
+      df_trait_sp_plot$variable  <- improve_vriable_names(df_trait_sp_plot$variable)
+      t <- improve_vriable_names(v)
+      
+      Traitplot[[paste0(as.character(relative_to_ref), as.character(proportional))]][[sp]][[paste(var_ii, collapse="")]]  <- 
+        ggplot(ssdg) +
+        geom_boxplot(aes(y=SSDg, x=Fmax)) +
+        facet_wrap(~variable, scales="free", ncol=2) + #
+        labs(title=sp, y="")+ #, y="SSD\u0262"
+        theme(strip.background = element_rect(fill="white"),
+              panel.background = element_rect(fill = "white", colour = "grey50"),
+              plot.title = element_text(hjust = 0.5),
+              axis.text.x = element_text(angle = 60, hjust = 1),
+              axis.text = element_text(colour = 1, size = 9),
+              panel.border = element_rect(colour = "black", fill=NA),
+              strip.text = element_text(size = 10))
+      
+      
       if (all(is.na(df_trait_sp_plot$value))) next
       result <- plot_trait_vs_fmax(df_trait_sp = df_trait_sp_plot, trait_name = var_ii,
                                    Time1, Time2, relative_to_ref = relative_to_ref, spec=sp,
-                                   ncol=3, nrow=3,
-                                   facet=T, subtitle=F,
+                                   ncol=3, nrow=3, 
+                                   facet=F, subtitle=F, scale_z = F,
                                    age_dim=T, FORCElm=F, #reference_input=ref_data,
                                    proportional = proportional, #weight = weight_df, 
-                                   position_legend=legend)
+                                   position_legend="right")
       Traitplot_age[[paste0(as.character(relative_to_ref), as.character(proportional))]][[sp]][[paste(var_ii, collapse="")]] <- result$plot
       
-      result <- plot_trait_vs_fmax(df_trait_sp = df_trait_sp_plot, trait_name = var_ii,
-                                   Time1, Time2, relative_to_ref = relative_to_ref, spec=sp,
-                                   ncol=3, nrow=3,
-                                   facet=T, 
-                                   age_dim=F,  FORCElm=F, #reference_input=ref_data,
-                                   proportional = proportional, #weight = weight_df, 
-                                   position_legend="right")
+      # result <- plot_trait_vs_fmax(df_trait_sp = df_trait_sp_plot, trait_name = var_ii,
+      #                              Time1, Time2, relative_to_ref = relative_to_ref, spec=sp,
+      #                              ncol=2, nrow=1,
+      #                              facet=F, scale_z=F, scale_facet = "free", 
+      #                              age_dim=F,  FORCElm=F, #reference_input=ref_data,
+      #                              proportional = proportional, #weight = weight_df, 
+      #                              position_legend="right")
       
-      Traitplot[[paste0(as.character(relative_to_ref), as.character(proportional))]][[sp]][[paste(var_ii, collapse="")]]   <- result$plot
     }# relative to ref
   }# trait
 }#sp
@@ -609,266 +637,28 @@ load(file=paste0(pathoutputRDATA, "/Traitplot_age.RData"))
 
 
 
-#### PLOT 4 : Mortality decomposition-----------------
-
-path_surv_curve <- paste0("output/PLOTS/selectivity_curves_per_Fmax")
-load(file=paste0(path_surv_curve, "dataset_surv-curve.RData"))
-
-combined_plot =list()
-Time1=150
-Time2=160
-plot_Mortality_decomposition <- list()
-dim_x = "length"
-mortality_plot_age = list()
-for (sp in species){
-  cat(sp)
-  
-  load(file=paste0(pathoutputRDATA, "/Complete_INIT2", sp, ".RData"))
-  final_dataset_age = complete[[2]]
-  min_age <- min(as.numeric(complete[[2]]$age), na.rm=T)
-  rm(complete)
-  
-  # # avoid the estimation bias of very populations of very low size
-  # if (any(((final_dataset_age[which(final_dataset_age$variable == "abundanceByAge"), "value"])<10))){
-  #   final_dataset_age <- pivot_wider(final_dataset_age, names_from = "variable", values_from = "value")
-  #   final_dataset_age <- final_dataset_age[-which((final_dataset_age$abundanceByAge)<10), ]
-  #   final_dataset_age <- pivot_longer(final_dataset_age, cols = -c("age", "replicate", "Fmax", "Fstart", 'Species', "cohort"), names_to = "variable", values_to = "value")
-  # }
-  
-  ### dataset
-  df_trait_sp <- final_dataset_age %>% filter(Species == sp, Fstart == 1)
-  
-  df_trait_sp <- df_trait_sp %>%
-    mutate(age = as.numeric(age))%>%
-    mutate(replicate = as.numeric(replicate)-1)%>% # to make the datasets match : unify the replicate range
-    mutate(Fmax = as.numeric(Fmax))%>%
-    mutate(Fstart = as.numeric(Fstart))
-  
-  # combine all traits: Mortality + Ne traits : both need to be pivot_wider to be combined
-  df_trait_sp <- pivot_wider(df_trait_sp, names_from = "variable", values_from = "value")
-  data_complete_c_i <- data_complete_c %>%
-    filter(Species == sp)
-  data_complete_c_i <- pivot_wider(data_complete_c_i, names_from = "variable", values_from = "value")
-  df_trait_sp <- full_join(data_complete_c_i,df_trait_sp, by=c("age", "Fmax", "Fstart", "Species", "replicate"))
-  if (any(na.omit(df_trait_sp$age) == 0)) df_trait_sp <- df_trait_sp[-which(df_trait_sp$age == 0), ]
-  df_trait_sp <- pivot_longer(data = df_trait_sp, cols = -which(colnames(df_trait_sp) %in% c("age", "Fmax", "Fstart", "Species", "replicate")),
-                              names_to = "variable", values_to = "value")
-  if (any(which(is.na(df_trait_sp$age)))) df_trait_sp$age[which(is.na(df_trait_sp$age))] <- min_age
-  df_trait_sp <- df_trait_sp[which(df_trait_sp$age >= min_age), ]
-  df_trait_sp <- na.omit(df_trait_sp)
-  
-  # add deaths estimates per mortaltiy source
-  df_trait_t    <- estimateSum(trait_data_full_i = df_trait_sp, var=paste0("mean_of_F_per_age", "\nsum", "mean_of_Mnat_per_age"))
-  df_trait_t$variable    <- "total_M"
-  df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
-  var_i <- unique(df_trait_sp$variable)
-  for (v in var_i){
-    if (any(grepl(pattern="mean_of_M", v) | grepl(pattern="mean_of_F", v) | grepl(pattern="total_M", v))) {
-      df_trait_t    <- estimateMnumber(trait_data_full_i = df_trait_sp, var=paste0(v))
-      df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
-    }
-  }
-  # for (v in var_i){
-  #   if (any(grepl(pattern="mean_of_M", v) | grepl(pattern="mean_of_F", v) | grepl(pattern="total_M", v))) {
-  #     df_trait_t    <- estimateMnumber(trait_data_full_i = df_trait_sp, var=paste0(v), var2="survivorship_curve")
-  #     df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
-  #   }
-  # }
-  df_trait_t    <- estimatecolSum(trait_data_full_i = df_trait_sp, var=paste0("colSumtot_deaths"))
-  df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
-  var_i <- unique(df_trait_sp$variable)
-  for (v in var_i){
-    if (any(grepl(pattern="death", v) & c(grepl(pattern="M", v)) | (grepl(pattern="F_death", v)) | (v=="all_deaths")| (v=="all_deaths_rate"))) {
-      df_trait_t    <- estimateDiv(trait_data_full_i = df_trait_sp, var=paste0(v, "\nDiv", "colSumtot_deaths"))
-      df_trait_t2   <- estimatecolSum(trait_data_full_i = df_trait_t, var=paste0("colSum", (df_trait_t$variable)[1]))
-      df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
-      df_trait_sp   <- rbind(df_trait_sp, df_trait_t2)
-    }
-  }
-  
-  #add delta square
-  for (v in var_i){
-    if (any(grepl(pattern="deaths", v) | (v=="Dead"))) {
-      df_trait_t    <- estimateX(trait_data_full_i = df_trait_sp, var=paste0("Deltasquarex", v))
-      df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
-    }
-  }
-  
-  #add sum by age of SSDgx and SSDix
-  df_trait_t    <- estimatecolSum(trait_data_full_i = df_trait_sp, var=paste0("colSumSSDix"))
-  df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
-  df_trait_t    <- estimatecolSum(trait_data_full_i = df_trait_sp, var=paste0("colSumSSDgx"))
-  df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
-  df_trait_t    <- estimatecolSum(trait_data_full_i = df_trait_sp, var=paste0("colSumDeltasquare"))
-  df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
-  
-  var_i <- unique(df_trait_sp$variable)
-  
-  # keep abundance by age variable on the side
-  #WEIGHT = df_trait_sp[which(df_trait_sp$variable=="abundanceByAge"),]
-  
-  # compare all traits to their value /N1 to understand where is the increase coming from
-  df_trait_t    <- estimatecolSum(trait_data_full_i = df_trait_sp, var=paste0("colSumDeltasquarexDead"))
-  df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
-  
-  for (v in var_i){
-    if (v != "Numerator_N_alpha") {
-      df_trait_t    <- estimateDiv(trait_data_full_i = df_trait_sp, var=paste0(v, "\nDivNumerator_N_alpha")) # div by population size
-      df_trait_sp   <- rbind(df_trait_sp, df_trait_t)
-    }
-  }
-  
-  var_i <- unique(df_trait_sp$variable)
-  
-  for (relative_to_ref in c(FALSE)){
-    proportional = FALSE
-    if (relative_to_ref == "proportional") {
-      relative_to_ref = FALSE
-      proportional = TRUE
-    }
-    relative_to_ref = as.logical(relative_to_ref)
-    plot_name_ch=c()
-    plot_name <- paste0(as.character(relative_to_ref), as.character(proportional))
-    if (plot_name=="TRUEFALSE") plot_name_ch <- c("Relative")
-    if (plot_name=="FALSEFALSE") plot_name_ch <- c("Absolute")
-    if (plot_name=="FALSETRUE") plot_name_ch <- c("Proportional")
-    # for the plot
-    plot_biom = ifelse(relative_to_ref, "rel_biomassplot", "biomassplot")
-    plot_biom = ifelse(relative_to_ref, "biomassplot", "biomassplot")
-    
-    ref_data <- df_trait_sp %>%
-      filter(Fstart == 1 & Fmax==1) %>%
-      dplyr::select(variable, value, replicate, age) %>%
-      dplyr::rename(ref_value = value)
-    df_trait_sp_a <- df_trait_sp
-    
-    df_trait_sp_a <- clean_values(df_trait_sp_a)
-    
-    # conditions to stop
-    if (nrow(df_trait_sp_a)==0) next
-    if (all(is.na(df_trait_sp_a$value) | df_trait_sp_a$value == 0)) next
-    
-    # produce plot
-    v <- names(table(df_trait_sp_a$variable))[c(which(grepl(names(table(df_trait_sp_a$variable)), pattern="Deltasquare") &
-                                                        c(grepl(names(table(df_trait_sp_a$variable)), pattern="M") | grepl(names(table(df_trait_sp$variable)), pattern="F")) 
-                                                      & !grepl(names(table(df_trait_sp_a$variable)), pattern="Div") & !grepl(names(table(df_trait_sp_a$variable)), pattern="deaths_rate") &
-                                                        grepl(names(table(df_trait_sp_a$variable)), pattern="death")
-                                                      & !grepl(names(table(df_trait_sp_a$variable)), pattern="colSum")),
-                                                which(names(table(df_trait_sp_a$variable)) == "Deltasquarexall_deaths"))]
-    v2 <- names(table(df_trait_sp_a$variable))[c(which(grepl(names(table(df_trait_sp_a$variable)), pattern="Deltasquare") & 
-                                                         c(grepl(names(table(df_trait_sp_a$variable)), pattern="M") | grepl(names(table(df_trait_sp$variable)), pattern="F"))
-                                                       & grepl(names(table(df_trait_sp_a$variable)), pattern="Div") & !grepl(names(table(df_trait_sp_a$variable)), pattern="deaths_rate")
-                                                       & !grepl(names(table(df_trait_sp_a$variable)), pattern="colSum")),
-                                                 which(names(table(df_trait_sp_a$variable)) == "Deltasquarexall_deaths\nDivNumerator_N_alpha"))]
-    
-    df_trait_sp_plot <- df_trait_sp_a[which(df_trait_sp_a$variable %in% v),]
-    ssdg <-  add_SSDg(df=df_trait_sp_plot)#, weight=WEIGHT)
-    df_trait_sp_plot <- left_join(df_trait_sp_plot, ssdg, by=c("Fmax", "Fstart", "variable", "Species"), relationship = "many-to-many")
-    id_FNatTot <- which(df_trait_sp_plot$variable %in% c("Deltasquarexall_deaths", 
-                                                         "DeltasquarexF_deaths", 
-                                                         "DeltasquarexMnat_deaths"))
-    df_trait_sp_plot$variable <- improve_vriable_names(df_trait_sp_plot$variable)
-    t <- improve_vriable_names(v)
-    result <- plot_trait_vs_age_simple(df_trait_sp=df_trait_sp_plot, sp_name=sp,
-                                       var_names=t, Time1=150, Time2=160, relative_to_ref = relative_to_ref,
-                                       scale_factor = 1,# weight=WEIGHT, 
-                                       nrow=3, ncol=3,
-                                       proportional = proportional, position_legend="auto", facet=T,
-                                       chosen_title = paste0(plot_name_ch, " total variance of reproductive success per mortality rates sources per age,\n",
-                                                             "averaged over years ",  Time1, " and ", Time2))
-    mortality_plot_age[[paste0(as.character(relative_to_ref), as.character(proportional))]][[sp]][[stringr::str_remove(paste(var_i, collapse=""), pattern="\n")]]  <- result$plot
-    
-    if ("SSDg"%in%colnames(df_trait_sp_plot)){
-      df_trait_sp_plot$Fmax <- as.factor(df_trait_sp_plot$Fmax)
-      ssdg$SSDg <- round(ssdg$SSDg, 1)
-      inset.plot <- ggplot(df_trait_sp_plot, group = (variable)) +
-        geom_boxplot(aes(y=SSDg, x=Fmax)) +
-        facet_wrap(~variable, scales="free") +
-        theme(strip.background = element_rect(fill="white"), 
-              panel.background = element_rect(fill = "white", colour = "grey50"),
-              plot.title = element_text(hjust = 0.5), 
-              axis.text.x = element_text(angle = 60, hjust = 1),
-              axis.text = element_text(colour = 1, size = 9),
-              panel.border = element_rect(colour = "black", fill=NA))
-      
-      inset.tot.F.Nat[[plot_name]][[sp]][[paste(t, collapse="_")]] <- ggplot(df_trait_sp_plot[id_FNatTot,], group = (variable)) +
-        geom_boxplot(aes(y=SSDg, x=Fmax)) +
-        facet_wrap(~variable, scales="free", ncol=1) +
-        labs(title=sp)+ #, y="SSD\u0262"
-        theme(strip.background = element_rect(fill="white"), 
-              panel.background = element_rect(fill = "white", colour = "grey50"),
-              plot.title = element_text(hjust = 0.5), 
-              axis.text.x = element_text(angle = 60, hjust = 1),
-              axis.text = element_text(colour = 1, size = 9),
-              panel.border = element_rect(colour = "black", fill=NA))
-      
-      result <- result + theme(legend.position = c(0.53, 0))
-      result <- ggdraw() +
-        draw_plot(result) +
-        draw_plot(inset.plot, x = 0.65, y = 0.0, width = 0.3, height = 0.32)
-    }
-    plot_Mortality_decomposition[[plot_name]][[sp]][[paste(t, collapse="_")]]<- result
-    
-    
-    df_trait_sp_plot <- df_trait_sp_a[which(df_trait_sp_a$variable %in% v2),]
-    ssdg <-  add_SSDg(df=df_trait_sp_plot)#, weight=WEIGHT)
-    df_trait_sp_plot <- left_join(df_trait_sp_plot, ssdg, by=c("Fmax", "Fstart", "variable", "Species"), relationship = "many-to-many")
-    id_FNatTot <- which(df_trait_sp_plot$variable %in% c("Deltasquarexall_deaths\nDivNumerator_N_alpha", 
-                                                         "DeltasquarexF_deaths\nDivNumerator_N_alpha", 
-                                                         "DeltasquarexMnat_deaths\nDivNumerator_N_alpha"))
-    df_trait_sp_plot$variable <- improve_vriable_names(df_trait_sp_plot$variable)
-    t <- improve_vriable_names(v2)
-    result <- plot_trait_vs_age_simple(df_trait_sp=df_trait_sp_plot, sp_name=sp,
-                                       var_names=t, Time1=150, Time2=160, relative_to_ref = relative_to_ref,
-                                       scale_factor = 1, #weight=WEIGHT, 
-                                       nrow=3, ncol=3,
-                                       proportional = proportional, position_legend="auto", facet=T,
-                                       chosen_title = paste0(plot_name_ch, " individual variance of reproductive success per mortality sources per age,\n",
-                                                             "averaged over years ",  Time1, " and ", Time2))
-    if ("SSDg"%in%colnames(df_trait_sp_plot)){
-      df_trait_sp_plot$Fmax <- as.factor(df_trait_sp_plot$Fmax)
-      ssdg$SSDg <- round(ssdg$SSDg, 1)
-      inset.plot <- ggplot(df_trait_sp_plot, group = (variable)) +
-        geom_boxplot(aes(y=SSDg, x=Fmax)) +
-        facet_wrap(~variable, scales="free") +
-        theme(strip.background = element_rect(fill="white"), 
-              panel.background = element_rect(fill = "white", colour = "grey50"),
-              plot.title = element_text(hjust = 0.5), 
-              axis.text.x = element_text(angle = 60, hjust = 1),
-              axis.text = element_text(colour = 1, size = 9),
-              panel.border = element_rect(colour = "black", fill=NA))
-      
-      result <- result + theme(legend.position = c(0.53, 0))
-      result <- ggdraw() +
-        draw_plot(result) +
-        draw_plot(inset.plot, x = 0.65, y = 0.0, width = 0.3, height = 0.32)
-      
-    }
-    plot_Mortality_decomposition[[plot_name]][[sp]][[paste(t, collapse="_")]]<- result
-    
-  }#relative/proportional/none
-}#sp
-
-save(plot_Mortality_decomposition, file=paste0(pathoutputRDATA, "/plot_Mortality_decomposition", dim_x,".RData"))
-
-for (dim_x in c("")){
-  assign(paste0("plot_Mortality_decomposition", dim_x), get(load(file=paste0(pathoutputRDATA, "/plot_Mortality_decomposition", dim_x,".RData"))))
-}
-
-#### PLOT 5- Deadx and Deadx/N area  under the curve ------------
+#### PLOT 5- Survivors area under the curve ------------
 
 Time1=150
 Time2=160
 deadinteger <- list()
 deadonNinteger <- list()
 matrix_compare <- NULL
-for (sp in species[2]){
+aliveinteger <- list()
+for (sp in species){
   cat(sp)
   
   data_complete_c ->df_trait_sp
   df_trait_sp <- df_trait_sp[which(df_trait_sp$Species == sp), ]
   df_trait_sp <- df_trait_sp[which(df_trait_sp$Fstart == 1), ]
   # add deaths estimates per mortaltiy source
+  
+  load(file=paste0(pathoutputRDATA, "/Complete_INIT2", sp, ".RData"))
+  alpha_age <- min(as.numeric(complete[[2]]$age), na.rm=T)  
+  rm(complete)
+  
+  alpha_agei <- ifelse(alpha_age==1, 2, alpha_age)
+  df_trait_sp <- df_trait_sp[which(df_trait_sp$age<=alpha_agei), ] # from first age to first age at maturation
   
   df_trait_t    <- estimateSum(trait_data_full_i = df_trait_sp, var=paste0("mean_of_F_per_age", "\nsum", "mean_of_Mnat_per_age"))
   df_trait_t$variable    <- "total_M"
@@ -899,10 +689,22 @@ for (sp in species[2]){
   df_trait_t <- estimateSum(df_trait_sp, var =  paste0("F_deaths\nDivcolSumtot_deaths\nsumMnat_deaths\nDivcolSumtot_deaths"), soustraction=T)
   df_trait_sp <- rbind(df_trait_sp, df_trait_t)
   
-  df_trait_sp  %>%
+  df_trait_sp  %>% # replicates ? 
     dplyr::group_by(age, replicate, Species, Fmax, Fstart, variable) %>%
     dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
     dplyr::filter(n > 1L) 
+  
+
+  # remove the dead cumulated from N_1 to have the N_alpha per mortality sources
+  df_trait_sp_abund_1 <- df_trait_sp[which(df_trait_sp$variable == "mean_of_abundanceByAge_per_age" & df_trait_sp$age == 1), ]
+  df_trait_sp_abund_1 <- df_trait_sp_abund_1 %>%
+    group_by(Fmax, Fstart, Species) %>%
+    summarise(value = mean(value))
+  df_trait_sp_abund_1$Fmax <- as.factor(df_trait_sp_abund_1$Fmax)
+  
+  # consider only dead that are happening at ages < age=alpha (maturation)
+  df_trait_sp <- df_trait_sp[which(df_trait_sp$age<alpha_age), ] # from first age to first age at maturation -1
+  
   # produce and store plots
   for (relative_to_ref in c(FALSE)){
     proportional = FALSE
@@ -920,33 +722,27 @@ for (sp in species[2]){
     plot_biom = ifelse(relative_to_ref, "rel_biomassplot", "biomassplot")
     plot_biom = ifelse(relative_to_ref, "biomassplot", "biomassplot")
     
-    v= c("Dead", "F_deaths","Mpred_deaths", "Mnat_deaths")
+    v= c("F_deaths", "Mnat_deaths","Mpred_deaths", "Mstar_deaths")
     t <- improve_vriable_names(v)
     df_trait_sp_plot <- df_trait_sp[which(df_trait_sp$variable %in% v),]
     df_trait_sp_plot$Fmax <- as.factor(df_trait_sp_plot$Fmax)
     ssdg <-  add_SSDg(df=df_trait_sp_plot)#, weight=WEIGHT)
     ssdg$variable <- improve_vriable_names(ssdg$variable)
     df_trait_sp_plot$variable  <- improve_vriable_names(df_trait_sp_plot$variable)
+    ssdg <- full_join(ssdg, df_trait_sp_abund_1)
+    ssdg <- ssdg %>% #  = abund_age_1 - dead_by_mortalities_until_age_i
+      group_by(variable, Fmax, Fstart, Species) %>%
+      summarise(SSDg = value-SSDg)
+    t= stringr::str_replace(t, "deaths", "N\u03B1")
+    ssdg$variable <- stringr::str_replace(ssdg$variable, 
+                                          "deaths", "N\u03B1")
     ssdg$variable <- factor(ssdg$variable, levels = t)
     ssdg$SSDg <- round(ssdg$SSDg, 1)
     
-    ssdg_t <- ssdg
-    ssdg_1 <- ssdg[which(ssdg$Fmax == 1), c("variable", "Species", "SSDg")]
-    colnames(ssdg_1)[3] <- "SSDg_Fmax1"
-    ssdg_t <- full_join(ssdg_1, ssdg_t) 
-    ssdg_t <- ssdg_t %>%
-      group_by(variable) %>%
-      mutate(SSDg_rel = (SSDg*100)/SSDg_Fmax1)%>%
-      ungroup()%>%
-      select(-SSDg_Fmax1)
-    ssdg_t$variable <- paste0("relative_", ssdg_t$variable)
-    t <- improve_vriable_names(c(v, unique(ssdg_t$variable)))
-    matrix_compare <- rbind(matrix_compare, ssdg_t)
-    
-    deadinteger[[plot_name]][[sp]][[paste(t, collapse="_")]] <- ggplot(ssdg) +
+    aliveinteger[[plot_name]][[sp]][[paste(t, collapse="_")]] <- ggplot(ssdg) +
       geom_boxplot(aes(y=SSDg, x=Fmax)) +
       labs(title=sp, y="")+ #, y="SSD\u0262"
-      facet_wrap(~variable, scales="free", ncol=2) +
+      facet_wrap(~variable, ncol=4) +
       theme(strip.background = element_rect(fill="white"),
             panel.background = element_rect(fill = "white", colour = "grey50"),
             plot.title = element_text(hjust = 0.5),
@@ -954,90 +750,24 @@ for (sp in species[2]){
             axis.text = element_text(colour = 1, size = 9),
             panel.border = element_rect(colour = "black", fill=NA),
             strip.text = element_text(size = 10))
-    
-    v= c("Dead",
-         "F_deaths\nDivcolSumtot_deaths", "Mpred_deaths\nDivcolSumtot_deaths", 
-         "Mnat_deaths\nDivcolSumtot_deaths")
-    t <- improve_vriable_names(v)
-    df_trait_sp_plot <- df_trait_sp[which(df_trait_sp$variable %in% v),]
-    df_trait_sp_plot$Fmax <- as.factor(df_trait_sp_plot$Fmax)
-    ssdg <-  add_SSDg(df=df_trait_sp_plot)
-    ssdg$variable <- improve_vriable_names(ssdg$variable)
-    df_trait_sp_plot$variable  <- improve_vriable_names(df_trait_sp_plot$variable)
-    ssdg$variable <- factor(ssdg$variable, levels = t)
-    # ssdg[which(ssdg$variable == "Dead/All deaths"), "SSDg"] <-  round(ssdg[which(ssdg$variable == "Dead/All deaths"), "SSDg"])
-    # ssdg$SSDg <- round(ssdg$SSDg, 1)
-    
-    ssdg_t <- ssdg
-    ssdg_1 <- ssdg[which(ssdg$Fmax == 1), c("variable", "Species", "SSDg")]
-    colnames(ssdg_1)[3] <- "SSDg_Fmax1"
-    ssdg_t <- full_join(ssdg_1, ssdg_t) 
-    ssdg_t <- ssdg_t %>%
-      group_by(variable) %>%
-      mutate(SSDg_rel = (SSDg*100)/SSDg_Fmax1)%>%
-      ungroup()%>%
-      select(-SSDg_Fmax1)
-    ssdg_t$variable <- paste0("relative_", ssdg_t$variable)
-    t <- improve_vriable_names(c(v, unique(ssdg_t$variable)))
-    matrix_compare <- rbind(matrix_compare, ssdg_t)
-    
-    deadonNinteger[[plot_name]][[sp]][[paste(t, collapse="_")]] <- ggplot(ssdg_t) +
-      geom_boxplot(aes(y=SSDg, x=Fmax)) +
-      facet_wrap(~variable, scales="free", ncol=2) +
-      labs(title=sp, y="")+ #, y="SSD\u0262"
-      theme(strip.background = element_rect(fill="white"),
-            panel.background = element_rect(fill = "white", colour = "grey50"),
-            plot.title = element_text(hjust = 0.5),
-            axis.text.x = element_text(angle = 60, hjust = 1),
-            axis.text = element_text(colour = 1, size = 9),
-            panel.border = element_rect(colour = "black", fill=NA),
-            strip.text = element_text(size = 10))
-    
   }
 }#sp
-save(deadonNinteger, file=paste0(pathoutputRDATA, "/deadonNinteger.RData"))
-load(file=paste0(pathoutputRDATA, "/deadonNinteger.RData"))
-save(deadinteger, file=paste0(pathoutputRDATA, "/deadinteger.RData"))
-load(file=paste0(pathoutputRDATA, "/deadinteger.RData"))
-write.csv(matrix_compare, file=paste0(PATHOUT, "/csv_compare_mortality_proportion.csv"))
+save(aliveinteger, file=paste0(pathoutputRDATA, "/aliveinteger.RData"))
+load(file=paste0(pathoutputRDATA, "/aliveinteger.RData"))
+
+# save(deadinteger, file=paste0(pathoutputRDATA, "/deadinteger.RData"))
+# load(file=paste0(pathoutputRDATA, "/deadinteger.RData"))
+# write.csv(matrix_compare, file=paste0(PATHOUT, "/csv_compare_mortality_proportion.csv"))
 
 #### PLOTS : combine all and SAVE ----------------
+
 
 path_surv_curve <- paste0("output/PLOTS/selectivity_curves_per_Fmax")
 load(file=paste0(path_surv_curve, "dataset_surv-curve.RData"))
 
 
-## mortality decomposition -----------------
-for (relative_to_ref in c(FALSE)){ #, FALSE, "proportional"
-  p=list()
-  proportional = FALSE
-  if (relative_to_ref == "proportional") {
-    relative_to_ref = FALSE
-    proportional = TRUE
-  }
-  relative_to_ref = as.logical(relative_to_ref)
-  plot_name_ch=c()
-  plot_name <- paste0(as.character(relative_to_ref), as.character(proportional))
-  if (plot_name=="TRUEFALSE") plot_name_ch <- c("relative")
-  if (plot_name=="FALSEFALSE") plot_name_ch <- c("absolute")
-  if (plot_name=="FALSETRUE") plot_name_ch <- c("proportional")
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(onefile=T, file = paste0(PATHOUT, "/Clean_for_paper/plotMortality_decomposition_", plot_name_ch, ".pdf"), width = 15, height = 10)
-  for (sp in species){ p[[sp]] <-(plot_Mortality_decomposition[[plot_name]][[sp]][1])}
-  print(p)
-  dev.off()
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(onefile=T, file = paste0(PATHOUT, "/Clean_for_paper/plotMortality_decomposition_onN_", plot_name_ch, ".pdf"), width = 15, height = 10)
-  for (sp in species){p[[sp]] <- (plot_Mortality_decomposition[[plot_name]][[sp]][2])}
-  print(p)
-  dev.off()
-}
-
-
-## explain why Ne ↑ --------------
-for (relative_to_ref in c(TRUE, FALSE, "proportional")){
+## ALL plots RELATIVE -----------------
+for (relative_to_ref in c(TRUE)){
   if (!dir.exists(paste0(PATHOUT, "/Clean_for_paper"))) dir.create(paste0(PATHOUT, "/Clean_for_paper"))
   proportional = FALSE
   if (relative_to_ref == "proportional") {
@@ -1056,198 +786,103 @@ for (relative_to_ref in c(TRUE, FALSE, "proportional")){
   plot_biom = ifelse(relative_to_ref, "biomassplot", "biomassplot")
   suffix_relative <- plot_name_ch
   
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Ne_Vk_T_whyNeincrease", plot_name_ch, ".pdf"),
-            width =12, height = 8, onefile=T)
-  for (sp in species){
-    plot_list <- c(Ne_plot_list[[plot_name]][[sp]][2:5])
-    # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
-    combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 2,
-                               nrow = 2)
-    combined_plot <- annotate_figure(combined_plot, top = text_grob(paste0("Explaining ", sp, " ", plot_name_ch, " variation of Ne/N"),
-                                                                    color = "grey60", face = "bold", size = 14))
-    print(combined_plot)
-  }
-  dev.off()  
   
   windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Ne_Vk_T_whyNeincrease", plot_name_ch, ".pdf"),
-            width =12, height = 8, onefile=T)
-  for (sp in species){
-    plot_list <- c(Ne_plot_list[[plot_name]][[sp]][2:5])
-    # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
-    combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 2,
-                               nrow = 2)
-    combined_plot <- annotate_figure(combined_plot, top = text_grob(paste0("Explaining ", sp, " ", plot_name_ch, " variation of Ne/N"),
-                                                                    color = "grey60", face = "bold", size = 14))
-    print(combined_plot)
-  }
-  dev.off() 
-  
-  
-}
-
-
-## Functional trait groups -----------
-for (relative_to_ref in c(FALSE)){
-  if (!dir.exists(paste0(PATHOUT, "/Clean_for_paper"))) dir.create(paste0(PATHOUT, "/Clean_for_paper"))
-  proportional = FALSE
-  if (relative_to_ref == "proportional") {
-    relative_to_ref = FALSE
-    proportional = TRUE
-  }
-  relative_to_ref <- as.logical(relative_to_ref)
-  
-  par(mfrow=c(1,1))
-  
-  plot_name_ch=c()
-  plot_name <- paste0(as.character(relative_to_ref), as.character(proportional))
-  if (plot_name=="TRUEFALSE") plot_name_ch <- c("relative")
-  if (plot_name=="FALSEFALSE") plot_name_ch <- c("")
-  if (plot_name=="FALSETRUE") plot_name_ch <- c("proportional")
-  
-  plot_biom = ifelse(relative_to_ref, "rel_biomassplot", "biomassplot")
-  plot_biom = ifelse(relative_to_ref, "biomassplot", "biomassplot")
-  suffix_relative <- plot_name_ch
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Traitplot", plot_name_ch, ".pdf"),
-            width =10, height = 8, onefile=T)
-  for (sp in species){
-    plot_list <- c(Traitplot[[plot_name]][[sp]][1])                          
-    print(plot_list)
-  }
-  dev.off()  
-  
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Traitplot_age", plot_name_ch, ".pdf"),
-            width =15, height = 12, onefile=T)
-  for (sp in species){
-    plot_list <- c(Traitplot_age[[plot_name]][[sp]][1])
-    print(plot_list)
-  }
-  dev.off()  
-  
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Traitplot_age_eggNb", plot_name_ch, ".pdf"),
-            width =11, height = 5, onefile=T)
-  for (sp in species){
-    plot_list <- c(inset.tot.F.Nat[[plot_name]][[sp]][8], 
-                   Traitplot_age[[plot_name]][[sp]][2])
-    combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 2,
-                               nrow = 1, common.legend = T, legend="right")
-    combined_plot <- annotate_figure(combined_plot, top = text_grob(paste0("Explaining ", sp, " ", plot_name_ch, " variation of Ne/N"),
-                                                                    color = "grey60", face = "bold", size = 14))
-    print(combined_plot)
-  }
-  dev.off()  
-  
-}
-
-## Ne and T/Vk------------------
-for (relative_to_ref in c(TRUE, FALSE, "proportional")){
-  if (!dir.exists(paste0(PATHOUT, "/Clean_for_paper"))) dir.create(paste0(PATHOUT, "/Clean_for_paper"))
-  proportional = FALSE
-  if (relative_to_ref == "proportional") {
-    relative_to_ref = FALSE
-    proportional = TRUE
-  }
-  relative_to_ref <- as.logical(relative_to_ref)
-  
-  plot_name_ch=c()
-  plot_name <- paste0(as.character(relative_to_ref), as.character(proportional))
-  if (plot_name=="TRUEFALSE") plot_name_ch <- c("relative")
-  if (plot_name=="FALSEFALSE") plot_name_ch <- c("")
-  if (plot_name=="FALSETRUE") plot_name_ch <- c("proportional")
-  
-  plot_biom = ifelse(relative_to_ref, "rel_biomassplot", "biomassplot")
-  plot_biom = ifelse(relative_to_ref, "biomassplot", "biomassplot")
-  suffix_relative <- plot_name_ch
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Ne_Vk_T_", plot_name_ch, ".pdf"),
-            width = 747/72, height = 1.25*450/72, onefile=T)
-  for (sp in species){
-    plot_list <- c(Ne_plot_list[[plot_name]][[sp]][1:3])
-    # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
-    combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 2,
-                               nrow = 2)
-    combined_plot <- annotate_figure(combined_plot, top = text_grob(paste0("Explaining ", sp, " ", plot_name_ch, " variation of Ne/N"),
-                                                                    color = "grey60", face = "bold", size = 14))
-    print(combined_plot)
-  }
-  dev.off()  
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Ne_finalNT", plot_name_ch, ".pdf"),
-            width = 747/72, height = 747/72, onefile=T)
-  plot_list <- c(Ne_plot_list[[plot_name]][["Whiting"]][2], 
-                 Ne_plot_list[[plot_name]][["GreyGurnard"]][2],
-                 Ne_plot_list[[plot_name]][["NorwayPout"]][2],
-                 Ne_plot_list[[plot_name]][["HorseMackerel"]][2])
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Ne_NT_NeonNT", plot_name_ch, ".pdf"),
+            width = 10, height =8, onefile=T)
+  inset_no_title <- Ne_plot_list[[plot_name]][["Whiting"]][2] |>
+    lapply(\(x) x + labs(title = "Whiting", subtitle="")+ theme(legend.position="none")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title2 <- Ne_plot_list[[plot_name]][["GreyGurnard"]][2] |>
+    lapply(\(x) x + labs(title = "Grey Gurnard", subtitle="")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title3 <- Ne_plot_list[[plot_name]][["NorwayPout"]][2] |>
+    lapply(\(x) x + labs(title = "Norway Pout", subtitle="")+ theme(legend.position="none")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title4 <- Ne_plot_list[[plot_name]][["HorseMackerel"]][2] |>
+    lapply(\(x) x + labs(title = "Horse Mackerel", subtitle="")+ theme(legend.position="none")) |>
+    ggarrange(plotlist = _)
+  plot_list <- c(inset_no_title, inset_no_title2, inset_no_title3, inset_no_title4)
   # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
   combined_plot <- ggarrange(plotlist = plot_list,
                              ncol = 2,
                              nrow = 2, common.legend = T)
   combined_plot <- annotate_figure(combined_plot)
   print(combined_plot)
-  dev.off()
+  dev.off()  
   
   windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Ne_finalNalpha", plot_name_ch, ".pdf"),
-            width = 747/72, height = 747/72, onefile=T)
-  plot_list <- c(Ne_plot_list[[plot_name]][["Whiting"]][3], 
-                 Ne_plot_list[[plot_name]][["GreyGurnard"]][3],
-                 Ne_plot_list[[plot_name]][["NorwayPout"]][3],
-                 Ne_plot_list[[plot_name]][["HorseMackerel"]][3])
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Vk_T_TonVk", plot_name_ch, ".pdf"),
+            width = 10, height =8, onefile=T)
+  inset_no_title <- Ne_plot_list[[plot_name]][["Whiting"]][1] |>
+    lapply(\(x) x + labs(title = "Whiting", subtitle="")+ theme(legend.position="none")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title2 <- Ne_plot_list[[plot_name]][["GreyGurnard"]][1] |>
+    lapply(\(x) x + labs(title = "Grey Gurnard", subtitle="")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title3 <- Ne_plot_list[[plot_name]][["NorwayPout"]][1] |>
+    lapply(\(x) x + labs(title = "Norway Pout", subtitle="")+ theme(legend.position="none")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title4 <- Ne_plot_list[[plot_name]][["HorseMackerel"]][1] |>
+    lapply(\(x) x + labs(title = "Horse Mackerel", subtitle="")+ theme(legend.position="none")) |>
+    ggarrange(plotlist = _)
+  plot_list <- c(inset_no_title, inset_no_title2, inset_no_title3, inset_no_title4)
   # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
   combined_plot <- ggarrange(plotlist = plot_list,
                              ncol = 2,
                              nrow = 2, common.legend = T)
   combined_plot <- annotate_figure(combined_plot)
   print(combined_plot)
-  dev.off()
+  dev.off()  
   
   
   windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Vk_final", plot_name_ch, ".pdf"),
-            width = 747/72, height = 747/72, onefile=T)
-  plot_list <- c(Ne_plot_list[[plot_name]][["Whiting"]][1], 
-                 Ne_plot_list[[plot_name]][["GreyGurnard"]][1],
-                 Ne_plot_list[[plot_name]][["NorwayPout"]][1],
-                 Ne_plot_list[[plot_name]][["HorseMackerel"]][1])
-  # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
-  combined_plot <- ggarrange(plotlist = plot_list,
-                             ncol = 2,
-                             nrow = 2, common.legend = T)
-  combined_plot <- annotate_figure(combined_plot)
-  print(combined_plot)
-  dev.off() 
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/compareNtNalpha", plot_name_ch, ".pdf"),
-            width = 747/72, height = 747/72, onefile=T)
-  for (sp in species){
-    plot_list <- c(Ne_plot_list[[plot_name]][[sp]]["Ne_N_alpha\nDivNumerator_N_alphaNe_N_alpha\nDivNTNTNumerator_N_alpha"])
-    # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/TOTVk_T_TonVk", plot_name_ch, ".pdf"),
+            width = 10, height =8, onefile=T)
+  for (sp in  1:ceiling(length(species)/4)){
+    if (sp == 4) plot_list <- c(Ne_plot_list[[plot_name]][[(sp-1)*4+1]][1], 
+                                Ne_plot_list[[plot_name]][[(sp-1)*4+2]][1],
+                                Ne_plot_list[[plot_name]][[(sp-1)*4+3]][1])
+    else {
+      plot_list <- c(Ne_plot_list[[plot_name]][[(sp-1)*4+1]][1], 
+                     Ne_plot_list[[plot_name]][[(sp-1)*4+2]][1],
+                     Ne_plot_list[[plot_name]][[(sp-1)*4+3]][1],
+                     Ne_plot_list[[plot_name]][[(sp-1)*4+4]][1])
+    }
     combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 1,
-                               nrow = 1)
-    combined_plot <- annotate_figure(combined_plot, top = text_grob(paste0("Explaining ", sp, " ", plot_name_ch, " variation of Ne/N"),
-                                                                    color = "grey60", face = "bold", size = 14))
+                               ncol = 2,
+                               nrow = 2, common.legend = T)
+    combined_plot <- annotate_figure(combined_plot)
     print(combined_plot)
   }
   dev.off()  
+  
+  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/TOTNe_NT_NeonNT", plot_name_ch, ".pdf"),
+            width = 10, height =8, onefile=T)
+  for (sp in  1:ceiling(length(species)/4)){
+    if (sp == 4) plot_list <- c(Ne_plot_list[[plot_name]][[(sp-1)*4+1]][2], 
+                                Ne_plot_list[[plot_name]][[(sp-1)*4+2]][2],
+                                Ne_plot_list[[plot_name]][[(sp-1)*4+3]][2])
+    else {
+      plot_list <- c(Ne_plot_list[[plot_name]][[(sp-1)*4+1]][2], 
+                     Ne_plot_list[[plot_name]][[(sp-1)*4+2]][2],
+                     Ne_plot_list[[plot_name]][[(sp-1)*4+3]][2],
+                     Ne_plot_list[[plot_name]][[(sp-1)*4+4]][2])
+    }
+    combined_plot <- ggarrange(plotlist = plot_list,
+                               ncol = 2,
+                               nrow = 2, common.legend = T)
+    combined_plot <- annotate_figure(combined_plot)
+    print(combined_plot)
+  }
+  dev.off()  
+  
 }
-
-
-## SSD ----
+  
+  
+## ALL PLOTS absolute ----------------
+  
 for (relative_to_ref in c(FALSE)){
   if (!dir.exists(paste0(PATHOUT, "/Clean_for_paper"))) dir.create(paste0(PATHOUT, "/Clean_for_paper"))
   proportional = FALSE
@@ -1268,280 +903,236 @@ for (relative_to_ref in c(FALSE)){
   suffix_relative <- plot_name_ch
   
   
-  
-  
-  
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/SSDg_tot_", plot_name_ch, ".pdf"),
-            width = 6, height =6, onefile=T)
-  for (sp in species){
-    plot_list <- c(inset.tot.F.Nat[[plot_name]][[sp]])
+  for (sp in c("Whiting", "GreyGurnard", "CommonDab", "EuropeanPlaice")){
+    inset_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][1] |>
+      lapply(\(x) x + labs(title = "")) |>
+      ggarrange(plotlist = _)  
+    inset_no_title2 <- inset.tot.F.Nat[[plot_name]][[sp]][2] |>
+      lapply(\(x) x + labs(title = "")) |>
+      ggarrange(plotlist = _)  
+    # inset_no_title3 <- inset.tot.F.Nat[[plot_name]][[sp]][3] |>
+    #   lapply(\(x) x + labs(title = "")) |>
+    #   ggarrange(plotlist = _)  
+    # inset_no_title4 <- inset.tot.F.Nat[[plot_name]][[sp]][4] |>
+    #   lapply(\(x) x + labs(title = "")) |>
+    #   ggarrange(plotlist = _)
+    plot_list <- c(inset_no_title, inset_no_title2)#, inset_no_title3, inset_no_title4)
     # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
-    print(plot_list)
-  }
-  dev.off()
-  
-  
+    if (sp=="CommonDab") sp <- "Common Dab"
+    if (sp=="EuropeanPlaice") sp <- "European Plaice"
+    if (sp=="GreyGurnard") sp <- "Grey Gurnard"
+    combined_plot <- ggarrange(plotlist = plot_list,
+                               ncol = 2,
+                               nrow = 1, common.legend = T)
+    assign(x = paste0("plot", sp), annotate_figure(combined_plot,  text_grob(sp, color = "black", face = "bold", size = 13)))
+  }  
   windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
   cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/SSDgonN_final_", plot_name_ch, ".pdf"),
-            width = 6, height =6, onefile=T)
-  plot_list <- c(inset.tot.F.Nat[[plot_name]][["Whiting"]][1], 
-                 inset.tot.F.Nat[[plot_name]][["GreyGurnard"]][1],
-                 inset.tot.F.Nat[[plot_name]][["NorwayPout"]][1],
-                 inset.tot.F.Nat[[plot_name]][["EuropeanPlaice"]][1])
-  # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
-  combined_plot <- ggarrange(plotlist = plot_list,
-                             ncol = 2,
-                             nrow = 2, common.legend = T)
-  combined_plot <- annotate_figure(combined_plot)
-  print(combined_plot)
-  dev.off()  
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/SSDgSSDgonN_final_", plot_name_ch, ".pdf"),
-            width = 10, height =6, onefile=T)
-  plot_list <- c(inset.tot.F.Nat[[plot_name]][["Whiting"]][2], 
-                 inset.tot.F.Nat[[plot_name]][["GreyGurnard"]][2],
-                 inset.tot.F.Nat[[plot_name]][["NorwayPout"]][2],
-                 inset.tot.F.Nat[[plot_name]][["EuropeanPlaice"]][2])
-  # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
-  combined_plot <- ggarrange(plotlist = plot_list,
-                             ncol = 2,
-                             nrow = 2, common.legend = T)
-  combined_plot <- annotate_figure(combined_plot)
-  print(combined_plot)
-  dev.off()  
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/DeltasquareDead_final_", plot_name_ch, ".pdf"),
-            width = 11, height = 10, onefile=T)
-  plot_list <- c(inset.tot.F.Nat[[plot_name]][["Whiting"]][3], 
-                 inset.tot.F.Nat[[plot_name]][["GreyGurnard"]][3],
-                 inset.tot.F.Nat[[plot_name]][["NorwayPout"]][3],
-                 inset.tot.F.Nat[[plot_name]][["EuropeanPlaice"]][3])
-  # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
-  combined_plot <- ggarrange(plotlist = plot_list,
-                             ncol = 2,
-                             nrow = 2, common.legend = T)
-  combined_plot <- annotate_figure(combined_plot)
-  print(combined_plot)
-  dev.off()
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/DeltasquareDead_finalonN_", plot_name_ch, ".pdf"),
-            width = 11, height = 10, onefile=T)
-  plot_list <- c(inset.tot.F.Nat[[plot_name]][["Whiting"]][4], 
-                 inset.tot.F.Nat[[plot_name]][["GreyGurnard"]][4],
-                 inset.tot.F.Nat[[plot_name]][["NorwayPout"]][4],
-                 inset.tot.F.Nat[[plot_name]][["EuropeanPlaice"]][4])
-  # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
-  combined_plot <- ggarrange(plotlist = plot_list,
-                             ncol = 2,
-                             nrow = 2, common.legend = T)
-  combined_plot <- annotate_figure(combined_plot)
-  print(combined_plot)
-  dev.off()  
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/DeltasquareDead_final_allSP_", plot_name_ch, ".pdf"),
-            width = 11, height = 10, onefile=T)
-  for (sp in 1:ceiling(length(species)/4)){
-    if (sp == 4) plot_list <- c(inset.tot.F.Nat[[plot_name]][[(sp-1)*4+1]][3],
-                                inset.tot.F.Nat[[plot_name]][[(sp-1)*4+2]][3],
-                                inset.tot.F.Nat[[plot_name]][[(sp-1)*4+3]][3])
-    else {
-      plot_list <- c(inset.tot.F.Nat[[plot_name]][[(sp-1)*4+1]][3], 
-                     inset.tot.F.Nat[[plot_name]][[(sp-1)*4+2]][3],
-                     inset.tot.F.Nat[[plot_name]][[(sp-1)*4+3]][3],
-                     inset.tot.F.Nat[[plot_name]][[(sp-1)*4+4]][3])
-    }
-    combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 2,
-                               nrow = 2, common.legend = T)
-    combined_plot <- annotate_figure(combined_plot)
-    print(combined_plot)
-  }
-  dev.off()
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/DeltasquareDead_finalonN_allSP_", plot_name_ch, ".pdf"),
-            width = 11, height = 10, onefile=T)
-  for (sp in 1:ceiling(length(species)/4)){
-    if (sp == 4) plot_list <- c(inset.tot.F.Nat[[plot_name]][[(sp-1)*4+1]][4], 
-                                inset.tot.F.Nat[[plot_name]][[(sp-1)*4+2]][4],
-                                inset.tot.F.Nat[[plot_name]][[(sp-1)*4+3]][4])
-    else {
-      plot_list <- c(inset.tot.F.Nat[[plot_name]][[(sp-1)*4+1]][4], 
-                     inset.tot.F.Nat[[plot_name]][[(sp-1)*4+2]][4],
-                     inset.tot.F.Nat[[plot_name]][[(sp-1)*4+3]][4],
-                     inset.tot.F.Nat[[plot_name]][[(sp-1)*4+4]][4])
-    }
-    combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 2,
-                               nrow = 2, common.legend = T)
-    combined_plot <- annotate_figure(combined_plot)
-    print(combined_plot)
-  }
-  dev.off()  
-  
-  
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/DeltasquareDead_final_increasing2_", plot_name_ch, ".pdf"),
-            width = 11, height = 10, onefile=T)
-  plot_list <- c(inset.tot.F.Nat[[plot_name]][["GreyGurnard"]][3], 
-                 inset.tot.F.Nat[[plot_name]][["GreyGurnard"]][3],
-                 inset.tot.F.Nat[[plot_name]][["CommonDab"]][3],
-                 inset.tot.F.Nat[[plot_name]][["EuropeanPlaice"]][3])
-  # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
-  combined_plot <- ggarrange(plotlist = plot_list,
-                             ncol = 2,
-                             nrow = 2, common.legend = T)
-  combined_plot <- annotate_figure(combined_plot)
-  print(combined_plot)
-  dev.off()
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/DeltasquareDead_finalonN_increasing2_", plot_name_ch, ".pdf"),
-            width = 11, height = 10, onefile=T)
-  plot_list <- c(inset.tot.F.Nat[[plot_name]][["GreyGurnard"]][4], 
-                 inset.tot.F.Nat[[plot_name]][["GreyGurnard"]][4],
-                 inset.tot.F.Nat[[plot_name]][["CommonDab"]][4],
-                 inset.tot.F.Nat[[plot_name]][["EuropeanPlaice"]][4])
-  # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
-  combined_plot <- ggarrange(plotlist = plot_list,
-                             ncol = 2,
-                             nrow = 2, common.legend = T)
-  combined_plot <- annotate_figure(combined_plot)
-  print(combined_plot)
-  dev.off()
-  
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+            width = 10.5, height =6, onefile=T)
   par(mfrow=c(2,2))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/plot_ssdg_age", plot_name_ch, ".pdf"),
-            width = 14, height = 7, onefile=T)
-  for (sp in c("Whiting", "GreyGurnard", "NorwayPout", "HorseMackerel")){
-    plot_list <- c(plot_ssdg_age[[plot_name]][[sp]][1])
-    print(plot_list)
-  }
-  dev.off()
+  combined_plot <- ggarrange(plotlist = list(get(paste0("plotWhiting")), get(paste0("plotGrey Gurnard")), get(paste0("plotCommon Dab")), get(paste0("plotEuropean Plaice"))),
+            ncol = 2,
+            nrow = 2, common.legend = T) 
+  print(combined_plot)
+  dev.off()  
+  
   
   
   windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Areas_under_the_curve_", plot_name_ch, ".pdf"),
-            width = 17, height = 6, onefile=T)
-  for (sp in 1:ceiling(length(species))){
-    dead_no_title <- deadinteger[[plot_name]][[sp]] |>
-      lapply(\(x) x + labs(title = "Dead number per mortality source")) |>
-      ggarrange(plotlist = _)
-    inset_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][3] |>
-      lapply(\(x) x + labs(title = "SSD\u0262")) |>
-      ggarrange(plotlist = _)    
-    plot_list <- c(list(inset_no_title) , 
-                   list(dead_no_title), 
-                   list(surv_curve[[sp]])
-    )
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Nalpha_deltasquare", plot_name_ch, ".pdf"),
+            width = 10.5, height =9, onefile=T)
+  for (sp in c("Whiting", "GreyGurnard", "NorwayPout", "EuropeanPlaice")){
+    inset_no_title <- Traitplot$TRUEFALSE[[sp]] |>
+      lapply(\(x) x + labs(title = "", subtitle = "") + theme(legend.position="none")) |>
+      ggarrange(plotlist = _)  
+    inset_no_title2 <- aliveinteger[[plot_name]][[sp]] |>
+      lapply(\(x) x + labs(title = "")) |>
+      ggarrange(plotlist = _) 
+    plot_list <- c(inset_no_title, inset_no_title2)
+    nrow=2
+    # get_subtitle(p)->f
+    # if(is.null(f)){
+    #   plot_list <- c(inset_no_title)
+    #   nrow=1
+    # }
+    # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
+    if (sp=="NorwayPout") sp <- "Norway Pout"
+    if (sp=="EuropeanPlaice") sp <- "European Plaice"
     combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 3,
-                               nrow = 1, common.legend = F)
-    combined_plot <- annotate_figure(combined_plot, top=text_grob(species[sp], size = 14))
+                               ncol = 1,
+                               nrow = nrow, common.legend = T)
+    combined_plot <- annotate_figure(combined_plot,  text_grob(sp, color = "black", face = "bold", size = 14))
     print(combined_plot)
   }
   dev.off()  
   
   windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Areas_under_the_curve_ONN_", plot_name_ch, ".pdf"),
-            width = 17, height = 6, onefile=T)
-  for (sp in 1:ceiling(length(species))){
-    dead_no_title <- deadonNinteger[[plot_name]][[sp]][1] |>
-      lapply(\(x) x + labs(title = "Dead number per mortality source/Tot dead")) |>
-      ggarrange(plotlist = _)
-    inset_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][4] |>
-      lapply(\(x) x + labs(title = "SSD\u0262/N\u03B1")) |>
-      ggarrange(plotlist = _)    
-    plot_list <- c(list(inset_no_title) , 
-                   list(dead_no_title), 
-                   list(surv_curve[[sp]])
-    )
-    combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 3,
-                               nrow = 1, common.legend = F)
-    combined_plot <- annotate_figure(combined_plot, top=text_grob(species[sp], size = 14))
-    print(combined_plot)
-  }
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Nalpha_deltasquare_and_mort_Nalpha", plot_name_ch, ".pdf"),
+            width = 12, height =8.5, onefile=T)
+  inset_no_title <- list(Traitplot$TRUEFALSE[["Whiting"]]$`NαΔ²`)  |>
+    lapply(\(x) x + labs(subtitle = "Whiting", title = "A") + 
+             theme(legend.position="none", 
+                   plot.title = element_text(hjust = -0.05, vjust=1, face = "bold", size=15))) |>
+    ggarrange(plotlist = _)  
+  inset_no_title2 <- list(Traitplot$TRUEFALSE[["GreyGurnard"]]$`NαΔ²`) |>
+    lapply(\(x) x + labs(title = "", subtitle = "Grey Gurnard") + theme(legend.position="none")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title3 <- list(Traitplot$TRUEFALSE[["CommonDab"]]$`NαΔ²`) |>
+    lapply(\(x) x + labs(title = "", subtitle = "Common Dab") + theme(legend.position="none")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title4 <- list(Traitplot$TRUEFALSE[["EuropeanPlaice"]]$`NαΔ²`)  |>
+    lapply(\(x) x + labs(title = "", subtitle = "European Plaice") + theme(legend.position="none")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title5 <- aliveinteger[[plot_name]][["CommonDab"]] |>
+    lapply(\(x) x + labs(title = "B", subtitle="Common Dab") + 
+             theme(legend.position="none", 
+                         plot.title = element_text(hjust = -0.15, vjust=1, face = "bold", size=15))) |>
+    ggarrange(plotlist = _) 
+  inset_no_title6 <- aliveinteger[[plot_name]][["EuropeanPlaice"]] |>
+    lapply(\(x) x + labs(title = "", subtitle="European Plaice")) |>
+    ggarrange(plotlist = _) 
+  plot_list <- c(inset_no_title, inset_no_title2, inset_no_title3, inset_no_title4, inset_no_title5, inset_no_title6)
+  combined_plot <- ggarrange(plotlist = plot_list,
+                             ncol = 2,
+                             nrow = 3, common.legend = T)
+  combined_plot <- annotate_figure(combined_plot)
+  print(combined_plot)
   dev.off()  
   
   windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/SSDgSSDgOnNNalpha", plot_name_ch, ".pdf"),
-            width = 17, height = 6, onefile=T)
-  for (sp in 1:ceiling(length(species))){
-    inset3_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][3] |>
-      lapply(\(x) x + labs(title = "SSD\u0262")) |>
-      ggarrange(plotlist = _)
-    inset4_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][4] |>
-      lapply(\(x) x + labs(title = "SSD\u0262/N\u03B1")) |>
-      ggarrange(plotlist = _)    
-    plot_list <- c(list(inset3_no_title) , 
-                   list(inset4_no_title), 
-                   list(Ne_plot_list[[plot_name]][[sp]][["Numerator_N_alpha"]])
-    )
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/TOT_NalphaDeltasquare", plot_name_ch, ".pdf"),
+            width = 10, height =8, onefile=T)
+  for (sp in  1:ceiling(length(species)/4)){
+    if (sp == 4) plot_list <- c(Traitplot$TRUEFALSE[[(sp-1)*4+1]]$`NαΔ²`, 
+                                Traitplot$TRUEFALSE[[(sp-1)*4+2]]$`NαΔ²`,
+                                Traitplot$TRUEFALSE[[(sp-1)*4+3]]$`NαΔ²`)
+    else {
+      plot_list <- c(Traitplot$TRUEFALSE[[(sp-1)*4+1]]$`NαΔ²`, 
+                     Traitplot$TRUEFALSE[[(sp-1)*4+2]]$`NαΔ²`,
+                     Traitplot$TRUEFALSE[[(sp-1)*4+3]]$`NαΔ²`, 
+                     Traitplot$TRUEFALSE[[(sp-1)*4+4]]$`NαΔ²`)
+    }
     combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 3,
-                               nrow = 1, common.legend = F)
-    combined_plot <- annotate_figure(combined_plot, top=text_grob(species[sp], size = 14))
-    print(combined_plot)
-  }
-  dev.off()    
-  
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/SSDgSSDgDead", plot_name_ch, ".pdf"),
-            width = 17, height = 6, onefile=T)
-  for (sp in 1:ceiling(length(species))){
-    inset3_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][3] |>
-      lapply(\(x) x + labs(title = "SSD\u0262")) |>
-      ggarrange(plotlist = _)
-    inset4_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][4] |>
-      lapply(\(x) x + labs(title = "SSD\u0262/N\u03B1")) |>
-      ggarrange(plotlist = _)    
-    inset5_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][7] |>
-      lapply(\(x) x + labs(title = "Dead")) |>
-      ggarrange(plotlist = _)
-    plot_list <- c(list(inset3_no_title) , 
-                   list(inset4_no_title), 
-                   list(inset5_no_title)
-    )
-    combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 3,
-                               nrow = 1, common.legend = F)
-    combined_plot <- annotate_figure(combined_plot, top=text_grob(species[sp], size = 14))
+                               ncol = 2,
+                               nrow = 2, common.legend = T)
+    combined_plot <- annotate_figure(combined_plot)
     print(combined_plot)
   }
   dev.off()  
   
   
   windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/SSDgSSDgDeadDelta", plot_name_ch, ".pdf"),
-            width = 17, height = 6, onefile=T)
-  for (sp in 1:ceiling(length(species))){
-    inset3_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][3] |>
-      lapply(\(x) x + labs(title = "SSD\u0262")) |>
-      ggarrange(plotlist = _)
-    inset4_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][4] |>
-      lapply(\(x) x + labs(title = "SSD\u0262/N\u03B1")) |>
-      ggarrange(plotlist = _)    
-    inset5_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][6] |>
-      lapply(\(x) x + labs(title = "Dead and \u0394²")) |>
-      ggarrange(plotlist = _)
-    plot_list <- c(list(inset3_no_title) , 
-                   list(inset4_no_title), 
-                   list(inset5_no_title)
-    )
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/TOT_Nalpha_by_mort", plot_name_ch, ".pdf"),
+            width = 10, height =8, onefile=T)
+  for (sp in  1:ceiling(length(species)/4)){
+    if (sp == 4) plot_list <- c(aliveinteger[[plot_name]][[(sp-1)*4+1]][1], 
+                                aliveinteger[[plot_name]][[(sp-1)*4+2]][1],
+                                aliveinteger[[plot_name]][[(sp-1)*4+3]][1])
+    else {
+      plot_list <- c(aliveinteger[[plot_name]][[(sp-1)*4+1]][1], 
+                     aliveinteger[[plot_name]][[(sp-1)*4+2]][1],
+                     aliveinteger[[plot_name]][[(sp-1)*4+3]][1],
+                     aliveinteger[[plot_name]][[(sp-1)*4+4]][1])
+    }
     combined_plot <- ggarrange(plotlist = plot_list,
-                               ncol = 3,
-                               nrow = 1, common.legend = F)
-    combined_plot <- annotate_figure(combined_plot, top=text_grob(species[sp], size = 14))
+                               ncol = 2,
+                               nrow = 2, common.legend = T)
+    combined_plot <- annotate_figure(combined_plot)
+    print(combined_plot)
+  }
+  dev.off()  
+  
+  
+  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Nalpha_deltasquare_and_mort_Nalpha", plot_name_ch, ".pdf"),
+            width = 12, height =8.5, onefile=T)
+  inset_no_title <- list(Traitplot$TRUEFALSE[["Whiting"]]$`NαΔ²`)  |>
+    lapply(\(x) x + labs(subtitle = "Whiting", title = "A") + 
+             theme(legend.position="none", 
+                   plot.title = element_text(hjust = -0.05, vjust=1, face = "bold", size=15))) |>
+    ggarrange(plotlist = _)  
+  inset_no_title2 <- list(Traitplot$TRUEFALSE[["GreyGurnard"]]$`NαΔ²`) |>
+    lapply(\(x) x + labs(title = "", subtitle = "Grey Gurnard") + theme(legend.position="none")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title3 <- list(Traitplot$TRUEFALSE[["CommonDab"]]$`NαΔ²`) |>
+    lapply(\(x) x + labs(title = "", subtitle = "Common Dab") + theme(legend.position="none")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title4 <- list(Traitplot$TRUEFALSE[["EuropeanPlaice"]]$`NαΔ²`)  |>
+    lapply(\(x) x + labs(title = "", subtitle = "European Plaice") + theme(legend.position="none")) |>
+    ggarrange(plotlist = _)  
+  inset_no_title5 <- aliveinteger[[plot_name]][["CommonDab"]] |>
+    lapply(\(x) x + labs(title = "B", subtitle="Common Dab") + 
+             theme(legend.position="none", 
+                   plot.title = element_text(hjust = -0.15, vjust=1, face = "bold", size=15))) |>
+    ggarrange(plotlist = _) 
+  inset_no_title6 <- aliveinteger[[plot_name]][["EuropeanPlaice"]] |>
+    lapply(\(x) x + labs(title = "", subtitle="European Plaice")) |>
+    ggarrange(plotlist = _) 
+  plot_list <- c(inset_no_title, inset_no_title2, inset_no_title3, inset_no_title4, inset_no_title5, inset_no_title6)
+  combined_plot <- ggarrange(plotlist = plot_list,
+                             ncol = 2,
+                             nrow = 3, common.legend = T)
+  combined_plot <- annotate_figure(combined_plot)
+  print(combined_plot)
+  dev.off()  
+  
+  
+  
+  
+  
+  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/TOTSSDgonN_final_", plot_name_ch, ".pdf"),
+            width = 10.5, height =9, onefile=T)
+  for (sp in species){
+    inset_no_title <- inset.tot.F.Nat[[plot_name]][[sp]][1] |>
+      lapply(\(x) x + labs(title = "")) |>
+      ggarrange(plotlist = _)  
+    inset_no_title2 <- inset.tot.F.Nat[[plot_name]][[sp]][2] |>
+      lapply(\(x) x + labs(title = "")) |>
+      ggarrange(plotlist = _)  
+    inset_no_title3 <- inset.tot.F.Nat[[plot_name]][[sp]][3] |>
+      lapply(\(x) x + labs(title = "")) |>
+      ggarrange(plotlist = _)  
+    inset_no_title4 <- inset.tot.F.Nat[[plot_name]][[sp]][4] |>
+      lapply(\(x) x + labs(title = "")) |>
+      ggarrange(plotlist = _)
+    plot_list <- c(inset_no_title, inset_no_title2, inset_no_title3, inset_no_title4)
+    # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
+    if (sp=="NorwayPout") sp <- "Norway Pout"
+    if (sp=="EuropeanPlaice") sp <- "European Plaice"
+    combined_plot <- ggarrange(plotlist = plot_list,
+                               ncol = 2,
+                               nrow = 2, common.legend = T)
+    combined_plot <- annotate_figure(combined_plot,  text_grob(sp, color = "black", face = "bold", size = 14))
+    print(combined_plot)
+  }
+  dev.off()  
+  
+  
+  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/TOTNalpha_deltasquare", plot_name_ch, ".pdf"),
+            width = 10.5, height =9, onefile=T)
+  for (sp in species){
+    inset_no_title <- Traitplot$TRUEFALSE[[sp]] |>
+      lapply(\(x) x + labs(title = "", subtitle = "") + theme(legend.position="none")) |>
+      ggarrange(plotlist = _)  
+    inset_no_title2 <- aliveinteger[[plot_name]][[sp]] |>
+      lapply(\(x) x + labs(title = "")) |>
+      ggarrange(plotlist = _) 
+    plot_list <- c(inset_no_title, inset_no_title2)
+    nrow=2
+    # get_subtitle(p)->f
+    # if(is.null(f)){
+    #   plot_list <- c(inset_no_title)
+    #   nrow=1
+    # }
+    # plot_list <- lapply(plot_list, function(x) x + theme_minimal(base_size = 11) + theme(legend.position = "bottom"))
+    if (sp=="NorwayPout") sp <- "Norway Pout"
+    if (sp=="EuropeanPlaice") sp <- "European Plaice"
+    combined_plot <- ggarrange(plotlist = plot_list,
+                               ncol = 1,
+                               nrow = nrow, common.legend = T)
+    combined_plot <- annotate_figure(combined_plot,  text_grob(sp, color = "black", face = "bold", size = 14))
     print(combined_plot)
   }
   dev.off()  

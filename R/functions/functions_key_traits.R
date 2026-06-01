@@ -45,14 +45,18 @@ clean_values <- function(df, value_col = "value") {
 
 
 # estiamte ssdg as the sum of the delta*Dead/N per age
-add_SSDg <- function(df){ #, weight){
-  # if (!("weight" %in% colnames(weight))) colnames(weight)[which(colnames(weight) == "value")] <- "weight"
-  # if ("variable" %in% colnames(weight)) weight <- weight[,-which(colnames(weight) == "variable")]
-  # df_w <- weighted_reduce(df, weight_df = weight, join_cols = c("age", "Fmax", "Fstart", "replicate", "Species"),
-  #                       group_cols = c("age", "Fmax", "Fstart", "variable", "Species"))
+add_SSDg <- function(df, relative=F){   
   df_m <- df %>%
     group_by(age, Fmax, Fstart, variable, Species)%>%
     summarise(value=mean(value, na.rm=T))
+  if (relative==T) {
+    relatived <- df_m %>% filter(Fmax==1) 
+    relatived <- relatived[, -which(colnames(relatived) == c("Fmax"))]
+    colnames(relatived)[which(colnames(relatived) == "value")] <- "relative"
+    dfi <- full_join(df_m, relatived)
+    dfi$value <- (dfi$value - dfi$relative)/abs(dfi$relative)
+    df_m <- dfi
+  }
   df_s <- df_m %>%
     group_by(variable, Fmax, Fstart, Species) %>%
     summarize(SSDg = sum(value, na.rm = T))%>%
@@ -307,10 +311,10 @@ format_slope_subtitle <- function(df, x_col = "Fmax", y_col = "mean", group_col 
 
 # shorter and more explicit variable names
 improve_vriable_names <- function(vector){
-  vector <- stringr::str_replace(vector, pattern="SSDgx_Mpred", replacement = "Predation SSD\u0262 (\u0394²Dead_Pred))")
-  vector <- stringr::str_replace(vector, pattern="SSDgx_Mstar", replacement = "Starvation SSD\u0262 (\u0394²Dead_Starv))")
-  vector <- stringr::str_replace(vector, pattern="SSDgx_F", replacement = "Fisheries SSD\u0262 (\u0394²(Dead_F))")
-  vector <- stringr::str_replace(vector, pattern="SSDgx_Mnat", replacement = "Natural SSD\u0262 (\u0394²(Dead_Natural))")
+  vector <- stringr::str_replace(vector, pattern="SSDgx_Mpred", replacement = "Predation SSD\u0262 (\u0394²Dead_Pred)")
+  vector <- stringr::str_replace(vector, pattern="SSDgx_Mstar", replacement = "Starvation SSD\u0262 (\u0394²Dead_Starv)")
+  vector <- stringr::str_replace(vector, pattern="SSDgx_F", replacement = "Fisheries SSD\u0262 (\u0394²Dead_F)")
+  vector <- stringr::str_replace(vector, pattern="SSDgx_Mnat", replacement = "Natural SSD\u0262 (\u0394²Dead_Natural)")
   vector <- stringr::str_replace(vector, pattern="SSDgx\nDivNumerator_N_alpha", replacement = "SSD\u0262/N\u03B1 (\u0394²Dead/N\u03B1)")
   vector <- stringr::str_replace(vector, pattern="SSDg", replacement = "SSD\u0262 (\u0394²Dead)")
   vector <- stringr::str_replace(vector, pattern="Numerator_N_alpha", replacement = "N\u03B1")
@@ -337,6 +341,7 @@ improve_vriable_names <- function(vector){
   vector <- stringr::str_replace(vector, pattern="Mpred_deaths", replacement = "Predation deaths")
   vector <- stringr::str_replace(vector, pattern="Mnat_deaths", replacement = "Natural deaths")
   vector <- stringr::str_replace(vector, pattern="Mstar_deaths", replacement = "Starvation deaths")
+  vector <- stringr::str_replace(vector, pattern="Mstarvation_deaths", replacement = "Starvation deaths")
   vector <- stringr::str_replace(vector, pattern="tot_deaths", replacement = "All deaths")
   vector <- stringr::str_replace(vector, pattern="\nsum", replacement = " - ")
   vector <- stringr::str_replace(vector, pattern="eggNumber_sc", replacement = "Eggs")
@@ -436,7 +441,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     if (nrow(ref_data)>1 & relative_to_ref){
       if (length(var_x)==1) {df_trait_sp_F <- df_trait_sp_F %>%
         group_by(replicate, variable, .data[[var_x]]) %>%
-        mutate(value =(value - ref_value)/ref_value) %>%
+        mutate(value =(value - ref_value)/abs(ref_value)) %>%
         dplyr::select(-ref_value)
       } else {
         df_trait_sp_F <- df_trait_sp_F %>%
@@ -585,21 +590,27 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     fill_vector <- rep("white", length(fill_vector))
     line_vector <- rep(1, length(fill_vector))
   }
+  fill_vectorfmax <- fill_vector
   fill_vector <- setNames(fill_vector, levels(df_trait_sp_F_mean_sd$variable))
+  fill_vectorfmax <- setNames(fill_vectorfmax, levels(df_trait_sp_F_mean_sd$Fmax))
   shape_vector <- setNames(shape_vector, levels(df_trait_sp_F_mean_sd$variable))
   line_vector <- setNames(line_vector, levels(df_trait_sp_F_mean_sd$variable))
   fill_vectori <- as.character(df_trait_sp_F_mean_sd$variable)
+  fill_vectorifmax <- as.character(df_trait_sp_F_mean_sd$Fmax)
   shape_vectori <- as.character(df_trait_sp_F_mean_sd$variable)
   line_vectori <- as.character(df_trait_sp_F_mean_sd$variable)
   tempo <- sapply(levels(df_trait_sp_F_mean_sd$variable), FUN = function(x) which(fill_vectori==x))
+  tempo2 <- sapply(levels(df_trait_sp_F_mean_sd$Fmax), FUN = function(x) which(fill_vectori==x))
   if (is.list(tempo)) {
-    for (i in names(tempo)) fill_vectori[fill_vectori==i] <- fill_vector[i]
-    for (i in names(tempo)) shape_vectori[shape_vectori==i] <- shape_vector[i]
-    for (i in names(tempo)) line_vectori[line_vectori==i] <- line_vector[i]
+    for (i in names(tempo))  fill_vectori[fill_vectori==i] <- fill_vector[i]
+    for (i in names(tempo2)) fill_vectorifmax[fill_vectorifmax==i] <- fill_vectorfmax[i]
+    for (i in names(tempo))  shape_vectori[shape_vectori==i] <- shape_vector[i]
+    for (i in names(tempo))  line_vectori[line_vectori==i] <- line_vector[i]
   } else{
-    for (i in colnames(tempo)) fill_vectori[tempo[,i]] <- fill_vector[i]
-    for (i in colnames(tempo)) shape_vectori[tempo[,i]] <- shape_vector[i]
-    for (i in colnames(tempo)) line_vectori[tempo[,i]] <- line_vector[i]
+    for (i in colnames(tempo))  fill_vectori[tempo[,i]] <- fill_vector[i]
+    for (i in names(tempo2)) fill_vectorifmax[fill_vectorifmax==i] <- fill_vectorfmax[i]
+    for (i in colnames(tempo))  shape_vectori[tempo[,i]] <- shape_vector[i]
+    for (i in colnames(tempo))  line_vectori[tempo[,i]] <- line_vector[i]
   }
 
   shape_var <- c(length(table(df_trait_sp_F_mean_sd$variable))>1, length(table(df_trait_sp_F_mean_sd$Fmax))>1)
@@ -607,6 +618,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
   } else {
     shape_var <- c("variable", "Fmax")[which.max( c(length(table(df_trait_sp_F_mean_sd$variable)), length(table(df_trait_sp_F_mean_sd$Fmax))))]}
   df_trait_sp_F_mean_sd$variable <- as.factor(df_trait_sp_F_mean_sd$variable)
+  df_trait_sp_F_mean_sd$variable <- factor(df_trait_sp_F_mean_sd$variable)
   if (length(var_x) == 1) {
     # remove the variables that have only one age class or NAs in the ssdg sums for instance
     if (any(sapply(df_trait_sp_F_mean_sd$variable, FUN = function(x) (all(is.na(df_trait_sp_F_mean_sd$mean[which(df_trait_sp_F_mean_sd$variable == x)])))))) {
@@ -658,13 +670,17 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
       x = var_x,
       y =  name_y, 
       subtitle = spec
-    ) +
-    scale_y_continuous(
-        # limits = limits,
-        sec.axis = sec_axis(~scale_function(., scale_factor, shift), #. * scale, # (. - a)/b,  #sec_axis(~. * scale, 
-        name = z_axis
-      )
-    )
+    ) 
+    
+    if (scale_z == T){
+      p <- p+
+        scale_y_continuous(
+          # limits = limits,
+          sec.axis = sec_axis(~scale_function(., scale_factor, shift), #. * scale, # (. - a)/b,  #sec_axis(~. * scale, 
+                              name = z_axis
+          )
+        )
+    }
     
     if (all(legend_pos !=c(1,0.5))) {
       p <- p+
@@ -677,7 +693,8 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
       p <- p+
         facet_wrap(~variable,nrow = nrow, ncol=ncol,drop=FALSE, scales = scale_facet)+
         theme(legend.position.inside = c(1,0.3), 
-              legend.direction = "vertical")
+              legend.direction = "vertical") + 
+        ylab(label = "")
       
       if (all(legend_pos !=c(1,0.5))) p <- p+ theme(legend.box = "horizontal")
     }
@@ -693,6 +710,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     p <- p +
       geom_line(aes(group = .data[[shape_var]], alpha=as.numeric(.data[[shape_var]])/10), show.legend = FALSE)
   } else {
+    df_trait_sp_F_mean_sd$variable <- factor(df_trait_sp_F_mean_sd$variable)
     df_trait_sp_F$Species <- as.factor(df_trait_sp_F$Species)
     legend_pos <- resolve_legend_position(
       position_legend = position_legend,
@@ -719,15 +737,33 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
         y =  name_y, 
         subtitle = subtitle
       ) +
-      theme(axis.text.x = element_text(angle = 60, hjust = 1),
-        legend.justification = c("right", "top"), 
-        legend.title = element_text( size=8), legend.text=element_text(size=8)) +
-      scale_y_continuous(
-        # limits = limits,
-        sec.axis = sec_axis(~scale_function(., scale_factor, shift), #. * scale, # (. - a)/b,  #sec_axis(~. * scale, 
-                            name = z_axis
+      theme(panel.background = element_rect(fill = "white", colour = "grey50"), 
+            plot.title = element_text(hjust = 0.5), 
+            axis.text.x = element_text(angle = 60, hjust = 1),
+            axis.text = element_text(colour = 1, size = 10),
+            panel.border = element_rect(colour = "black", fill=NA),
+            legend.background = element_blank(),
+            legend.justification = c("right", "top"),
+            legend.title = element_text(size=13),
+            legend.text=element_text(size=12), 
+            legend.box.background = element_rect(colour = "black"), 
+            legend.key = element_rect(colour = NA))
+    
+    if (length(levels(df_trait_sp_F_mean_sd$variable))==1) {
+      p <- p + 
+        guides(colour=FALSE) + 
+        geom_point(size=3, colour="black") +
+        geom_line(colour="black")
+    }
+    if (scale_z == T){
+      p <- p+
+        scale_y_continuous(
+          # limits = limits,
+          sec.axis = sec_axis(~scale_function(., scale_factor, shift), #. * scale, # (. - a)/b,  #sec_axis(~. * scale, 
+                              name = z_axis
+          )
         )
-      )
+    }
     
     if (all(legend_pos !=c(1,0.5))) {
       p <- p+
@@ -743,6 +779,14 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
               legend.direction = "vertical")
       
       if (all(legend_pos !=c(1,0.5))) p <- p+ theme(legend.box = "horizontal")
+    }
+    if (relative_to_ref == T | proportional == T){
+      p <- p + 
+        theme(legend.position = "inside",
+              legend.position.inside = c(1,1),
+              legend.spacing.y = unit(0, "mm")) +
+        geom_hline(col="grey80", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=0)+
+        geom_hline(col="grey80", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=inv_scale_function(0, scale = scale, shift = shift))
     }
   }
   

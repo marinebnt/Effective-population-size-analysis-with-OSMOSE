@@ -983,9 +983,10 @@ Time2=160
 deadinteger <- list()
 deadonNinteger <- list()
 matrix_compare <- NULL
+
 for (sp in species[2]){
   cat(sp)
-  
+  cat("Missing to exclude the ages < age maturation ??")
   data_complete_c ->df_trait_sp
   df_trait_sp <- df_trait_sp[which(df_trait_sp$Species == sp), ]
   df_trait_sp <- df_trait_sp[which(df_trait_sp$Fstart == 1), ]

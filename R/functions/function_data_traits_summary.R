@@ -239,7 +239,7 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, pathdata, pathout, Time1, Ti
           if (!is.data.frame(f_i_sp_d) & !is.matrix(f_i_sp_d)){
             
             f_i_sp_d = lapply(names(f_i_sp_d), FUN = function(x) {
-              f_i_sp_d[[x]] <- as.data.frame(f_i_sp_d[[x]])
+              f_i_sp_d[[x]] <- as.data.frame(f_i_sp_d[[x]][,which(colnames(f_i_sp_d[[x]]) %in% paste0("cohort_", Time1:Time2))])
               f_i_sp_d[[x]][, "replicate"] = stringr::str_remove(x, pattern="rep_")
               f_i_sp_d[[x]][, "age"] = rownames(f_i_sp_d[[x]])
               return(f_i_sp_d[[x]])
@@ -248,7 +248,6 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, pathdata, pathout, Time1, Ti
             
             f_i_sp_d <- pivot_longer(f_i_sp_d, names_to = "cohort", values_to = "value", cols=-c(replicate, age))
             f_i_sp_d[, "cohort"] = stringr::str_remove(as.matrix(f_i_sp_d[, "cohort"]), pattern="cohort_")
-            f_i_sp_d <- f_i_sp_d[which(f_i_sp_d$cohort %in% c(Time1:Time2)), ]
             f_i_sp_d$Species <- sp
             f_i_sp_d$variable <- dim
             f_i_sp_d$Fmax <- as.numeric(stringr::str_split(stringr::str_split(f_i, pattern="Fmax")[[1]][2], pattern="_Fstart")[[1]][1])
