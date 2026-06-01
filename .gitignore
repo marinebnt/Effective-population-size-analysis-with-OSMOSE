@@ -1,0 +1,21 @@
+.Rproj.user
+.Rproj
+.RData
+*.RData
+.Rhistory
+.Ruserdata
+*.nc
+*.prm
+New_gpu_conf.R
+.positai
+
+# zip and nc
+.nc
+.zip
+*.nc
+*.zip
+
+# old folders
+/old*
+/not_used*
+/output*

@@ -15,18 +15,19 @@ source("R/functions/function_data_traits_summary.R") # datasets preparation & lo
 source("R/functions/functions_key_traits.R") # plots 
 
 # paths
-simu_repo <- "C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/osmose-ns-v4.4.1_clim/"
 # path <- paste0(simu_repo, "/output/PLOTS/FINAL_Ne_Htz_mature_short/")
 PATHOUT  = "output/PLOTS/KEY_TRAITS_MATURE/"
 if (!dir.exists(PATHOUT)) dir.create(PATHOUT, recursive = TRUE)
 pathoutputRDATA = paste0(PATHOUT, "RDATA_MATURE")
 if(!dir.exists(pathoutputRDATA)) dir.create(pathoutputRDATA, recursive = T)
-base_path = paste0(simu_repo, "output/SIMULATIONS/Trait_variables_by_cohort_by_age2")
+base_path = paste0("output/DATASETS/Trait_variables_by_cohort_by_age2")
+base_path = paste0("output/DATASETS/Trait_variables_by_cohort_by_age_withWbyAge/")
 # folders_long <- list.dirs(paste0(path_long, "INIT"), recursive = F)
 
-folders_traits_c <- paste0(simu_repo, "output/SIMULATIONS/Trait_variables_by_cohort/RData/")
+folders_traits_c <- paste0("output/DATASETS/Trait_variables_by_cohort/RData/")
 folders_traits_c  <- list.dirs(folders_traits_c, recursive = F)
-folders_traits_c_a <- paste0(simu_repo, "output/SIMULATIONS/Trait_variables_by_cohort_by_age2/RData/")
+folders_traits_c_a <- paste0("output/DATASETS/Trait_variables_by_cohort_by_age/RData/")
+folders_traits_c_a <- paste0("output/DATASETS/Trait_variables_by_cohort_by_age_withWbyAge/RData/")
 folders_traits_c_a  <- list.dirs(folders_traits_c_a, recursive = F)
 
 #### DATASETS load or format dataset ------------------------
@@ -39,11 +40,11 @@ dataset="data_Ne"
 
 ## % activate if needed : will produce .RData files in the folder paste0(simu_repo, "/output/PLOTS/FINAL_Ne_Htz_mature/")
 ## % 1 file per species, with the dataset at the scale of the cohorts, starting at age = alpha (first mature age)
-# dataset_Ne_mean_cohorts(species, FORCE, pathdata=paste0(simu_repo, "output/SIMULATIONS/FINAL_Ne_Htz_mature/"), 
-                        # pathout=pathoutputRDATA, Time1, Time2)
+dataset_Ne_mean_cohorts(species, FORCE, pathdata=paste0("output/DATASETS/FINAL_Ne_Htz_mature/"),
+        pathout=pathoutputRDATA, Time1, Time2)
 
 ## loading the dataset of traits averaged over cohorts Time1 to Time2, and reorganised to remove age=0, add reassign natural mortality as add mortality, and estimate natural mortality
-data_complete_c <- load_trait_df(base_path, pathout=pathoutputRDATA)
+data_complete_c <- load_trait_df(base_path = base_path, pathout=pathoutputRDATA)
 
 
 
@@ -208,7 +209,8 @@ list_bio <- list("rel_biomassplot"=rel_biomassplot, "biomassplot"=biomassplot)
 #### PLOT 1- NE/N VS FMAX + Biomass VS FMAX ------------------
 
 traits_to_plot <- list(c("generation_length", "Vk_point", "T/Vk."), 
-                       c("Ne_N_alpha", "NT", "Ne_N_alpha\nDivNT"))
+                       c("Ne_N_alpha", "NT", "Ne_N_alpha\nDivNT"), 
+                       c("Ne_N_alpha", "Numerator_N_alpha"))
 
 
 Ne_plot_list = list()
@@ -809,6 +811,27 @@ for (relative_to_ref in c(TRUE)){
                              nrow = 2, common.legend = T)
   combined_plot <- annotate_figure(combined_plot)
   print(combined_plot)
+  dev.off()  
+  
+  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/TOTNe_Nalpha", plot_name_ch, ".pdf"),
+            width = 10, height =8, onefile=T)
+  for (sp in  1:ceiling(length(species)/4)){
+    if (sp == 4) plot_list <- c(Ne_plot_list[[plot_name]][[(sp-1)*4+1]][3], 
+                                Ne_plot_list[[plot_name]][[(sp-1)*4+2]][3],
+                                Ne_plot_list[[plot_name]][[(sp-1)*4+3]][3])
+    else {
+      plot_list <- c(Ne_plot_list[[plot_name]][[(sp-1)*4+1]][3], 
+                     Ne_plot_list[[plot_name]][[(sp-1)*4+2]][3],
+                     Ne_plot_list[[plot_name]][[(sp-1)*4+3]][3],
+                     Ne_plot_list[[plot_name]][[(sp-1)*4+4]][3])
+    }
+    combined_plot <- ggarrange(plotlist = plot_list,
+                               ncol = 2,
+                               nrow = 2, common.legend = T)
+    combined_plot <- annotate_figure(combined_plot)
+    print(combined_plot)
+  }
   dev.off()  
   
   windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))

@@ -99,7 +99,7 @@ for (sp in SP){
          for (nm in names(reshape_data_Ne[[sp]][["data_Ne"]])){
           #  fct_i = ifelse(nm %in% c("mortalityByAge", "abundanceByAge"), sum, mean)
           fct_i = ifelse(nm %in% c("biomassByAge", "schoolNumber", "abundanceMature", "eggNumberByAge", "abundanceByAge"), "sum", 
-                   ifelse(nm %in% c("sizeMature", "mortalityByAge", "meanSizeByAge", "fecundityByAge", "Mpred", "Mstar", "Mnat", "F", "Z", "Mfor", "Dis"), "mean", "total"))
+                   ifelse(nm %in% c("sizeMature", "mortalityByAge", "meanSizeByAge", "fecundityByAge", "Mpred", "Mstar", "Mnat", "F", "Z", "Mfor", "Dis", "meanWeightByAge"), "mean", "total"))
           new_nm <- paste0(fct_i, "_of_", nm, "_per_age") 
           new_trait_dim[which(trait_dim == nm)] <- new_nm
           data_t_t <- reshape_data_Ne[[species[1]]][["data_Ne"]][[nm]]
