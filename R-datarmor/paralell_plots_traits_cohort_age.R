@@ -8,8 +8,8 @@ SP = c("AtlanticHerring",  "AtlanticMackerel", "Sandeel",  "EuropeanSprat", "Nor
        "EuropeanPlaice", "CommonSole", "Saithe", "AtlanticCod", "Haddock",  "HorseMackerel",
        "Whiting",  "CommonDab", "GreyGurnard", "Hake")
 main = "New_gpu_conf.R"
-source("osmose-ns-v4.4.1_clim/R-datarmor/PLOT_trait_replicates_cohorts_age.R")
-source("osmose-ns-v4.4.1_clim/R/functions/source.R")
+source("R-datarmor/PLOT_trait_replicates_cohorts_age.R")
+source("R/functions/source.R")
 
 with_progress({
   p <- progressor(along = SP)    # create a progressor function with length = length(SP)

@@ -14,7 +14,7 @@ trait_dim= c("meanWeightByAge", "abundanceMature",
      "Mpred", "Mstar", "Mnat", "F", "Mfor",
      "abundanceByAge", "biomassByAge", 
      "mortalityByAge", "schoolNumber", 
-     "sizeMature", "eggNumberByAge")[1]
+     "sizeMature", "eggNumberByAge")
 
 ideal_order_factor <- paste0("Fmax=", rep(c(0.5,0.75,1,1.25,1.5), 5),
                              " Fstart=", c(rep(0.5, 5),rep(0.75, 5),rep(1, 5),rep(1.25, 5),rep(1.5, 5)))
