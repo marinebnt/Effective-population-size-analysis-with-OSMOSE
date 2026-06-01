@@ -2,26 +2,10 @@
 # osmose-ns-v4.4.1_clim/R/functions/dependencies.R
 required_packages <- c("osmose", "stringr", "reshape2", "cowplot", "patchwork",
                        "minpack.lm", "ggplot2", "dplyr", "tidyr", "ncdf4", 
-                       "gridExtra", "tidyverse", "matrixStats")
+                       "gridExtra", "tidyverse", "matrixStats", "ggpubr")
 
 invisible(lapply(required_packages, library, character.only=T))
 
-
-library(osmose)
-library(stringr)
-library(reshape2)
-library(cowplot)
-library(patchwork)
-library(minpack.lm)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(ncdf4)
-library(gridExtra)   # pour arranger plusieurs plots
-# library(GGally)
-library(tidyverse)
-library(matrixStats)
-library(ggpubr)
 
 source(paste0("R/functions/functions_for_Ne.R"))
 source(file.path("R/functions/functions_Ne.R"))

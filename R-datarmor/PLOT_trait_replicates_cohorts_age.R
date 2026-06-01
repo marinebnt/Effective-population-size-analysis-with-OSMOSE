@@ -9,16 +9,19 @@ repo        = "Simu_LONG"
 multip_name = "y"
 multipliers = c(1,0.5,0.75,1.25,1.5)
 
-trait_dim= c("sizeMature", "abundanceMature", "meanSizeByAge", "fecundityByAge",
+trait_dim= c("meanWeightByAge", "abundanceMature", 
+     "meanSizeByAge", "fecundityByAge",
      "Mpred", "Mstar", "Mnat", "F", "Mfor",
-     "abundanceByAge", "biomassByAge", "mortalityByAge", "schoolNumber", "eggNumberByAge")
+     "abundanceByAge", "biomassByAge", 
+     "mortalityByAge", "schoolNumber", 
+     "sizeMature", "eggNumberByAge")[1]
 
 ideal_order_factor <- paste0("Fmax=", rep(c(0.5,0.75,1,1.25,1.5), 5),
                              " Fstart=", c(rep(0.5, 5),rep(0.75, 5),rep(1, 5),rep(1.25, 5),rep(1.5, 5)))
 
 
-
-path_in <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/osmose-ns-v4.4.1_clim/output/test")
+configDir=getwd()
+path_in <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/osmose-ns-v4.4.1_clim/output/old/test")
 # path_in <- c("Y:/outputs-meso-marine")
 path_in <- c("/home1/datawork/mbeneat/SIMU_CHAP2_FIN")
 list_d <- list.dirs(path = path_in, recursive = F, full.names = T)
@@ -34,7 +37,8 @@ list_d <- list.dirs(path = path_in, recursive = F, full.names = T)
 # nb_rep = 1
 # nage = years
 
-pathout <- paste0(configDir, "/output/PLOTS/Trait_variables_by_cohort_by_age2")
+pathout <- paste0("output/PLOTS/Trait_variables_by_cohort_by_age_withWbyAge")
+if (!dir.exists(pathout)) dir.create(pathout)
 
 F_vec <- list()
 #species = species[1:2]
