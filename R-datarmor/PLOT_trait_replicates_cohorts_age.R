@@ -9,7 +9,7 @@ repo        = "Simu_LONG"
 multip_name = "y"
 multipliers = c(1,0.5,0.75,1.25,1.5)
 
-trait_dim= c("meanWeightByAge", "abundanceMature", 
+trait_dim= c("GonadWeight", "meanWeightByAge", "abundanceMature", 
      "meanSizeByAge", "fecundityByAge",
      "Mpred", "Mstar", "Mnat", "F", "Mfor",
      "abundanceByAge", "biomassByAge", 

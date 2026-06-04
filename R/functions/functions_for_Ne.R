@@ -23,10 +23,11 @@ estimate_for_Ne <- function(outputDir_Simu, outputDir_Ne, dim_vec, species, nb_r
       for (rep in (0:c(nb_rep-1))){
 
         # dimensions of the dataset for that species and that replicate
-        if(any(grepl("egg", TRAIT) || grepl("school", TRAIT) || grepl("mature", TRAIT))){
+        if(any(grepl("egg", TRAIT) || grepl("school", TRAIT) || grepl("mature", TRAIT)  || grepl("Gonad", TRAIT))){
           if (grepl("egg", TRAIT)) path_i = "/AgeIndicators/ns_fecundityDistribByAge_Simu"
           if (grepl("mature", TRAIT)) path_i = "/Indicators/ns_matureAbundanceDistribByAge_Simu"
           if (grepl("school", TRAIT)) path_i = "/ns_nschoolDistribByAge_Simu"
+          if (grepl("Gonad", TRAIT)) path_i = "/BioenIndicators/ns_meanGonadWeightDistribByAge_Simu"
           d_i <- read.csv(paste0(outputDir_Simu, path_i, rep, ".csv"), skip=c(1))
           data <- dcast(d_i, Time ~ Age, value.var = sp) # does not include the replicates
           rownames(data) <- data[,1]
@@ -71,7 +72,7 @@ estimate_for_Ne <- function(outputDir_Simu, outputDir_Ne, dim_vec, species, nb_r
           data <- data[,-1]
         }
 
-        if(!((TRAIT == "mature") || grepl("mortality", TRAIT) || grepl("egg", TRAIT)  || grepl("school", TRAIT) || 
+        if(!((TRAIT == "mature") || grepl("mortality", TRAIT) || grepl("egg", TRAIT) || grepl("Gonad", TRAIT) || grepl("school", TRAIT) || 
              grepl("sizeMature", TRAIT) || grepl(TRAIT, pattern="abundanceMature") || TRAIT == ("fecundityByAge"))) {
             data <- OUTPUT_data[[TRAIT]][[sp]]
           if(!(TRAIT %in% names(OUTPUT_data[["mortalityByAge"]][[sp]]))) {data <- data[,,rep+1]
