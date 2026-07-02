@@ -46,6 +46,7 @@ if (!dir.exists(pathout)) dir.create(pathout, recursive=T)
 F_vec <- list()
 #species = species[1:2]
 spec_names <- species
+cat(species, "\n\n\n")
 
 for (sp in SP){  
 
@@ -56,6 +57,8 @@ for (sp in SP){
   species = spec_names[c(c(sp_i+1), ifelse(sp_i<14, sp_i+2, 1))]  
   sp_dir <- list_d[grep(pattern = paste0("sp", sp_i), list_d)]
 
+  cat("sp_dir = ", sp_dir)
+  
   # initialisation
   data_tot <- NULL
   plot_Neth_N_alpha_NT_sp     <- list()
