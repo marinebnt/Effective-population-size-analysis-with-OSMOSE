@@ -3,7 +3,7 @@
 PLOT_trait_replicates2 <- function(SP, Time1=150, Time2=160){
 
 # setwd("X:/osmose-ns")
-main = "New_gpu_conf.R"
+main = "New_gpu_conf_RCP.R"
 
 repo        = "Simu_LONG"
 multip_name = "y"
@@ -13,7 +13,7 @@ trait_dim= c("GonadWeight", "meanWeightByAge", "abundanceMature",
      "meanSizeByAge", "fecundityByAge",
      "Mpred", "Mstar", "Mnat", "F", "Mfor",
      "abundanceByAge", "biomassByAge", 
-     "mortalityByAge", "schoolNumber", 
+     "mortalityByAge", #"schoolNumber", 
      "sizeMature", "eggNumberByAge")
 
 ideal_order_factor <- paste0("Fmax=", rep(c(0.5,0.75,1,1.25,1.5), 5),
@@ -24,6 +24,8 @@ configDir=getwd()
 path_in <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/osmose-ns-v4.4.1_clim/output/old/test")
 # path_in <- c("Y:/outputs-meso-marine")
 path_in <- c("/home1/datawork/mbeneat/SIMU_CHAP2_FIN")
+path_in <- c("/home/datawork-marbec-scenlab/OSMOSE/Marine/SIMU_CHAP3_FIN")
+
 list_d <- list.dirs(path = path_in, recursive = F, full.names = T)
 
 # for the test : has to be erased when real launch
@@ -38,7 +40,8 @@ list_d <- list.dirs(path = path_in, recursive = F, full.names = T)
 # nage = years
 
 pathout <- paste0("output/PLOTS/Trait_variables_by_cohort_by_age_withWbyAge")
-if (!dir.exists(pathout)) dir.create(pathout)
+pathout <- paste0("/home1/datawork/mbeneat/output/SIMU/CHAP3/Trait_variables_by_cohort_by_age_withWbyAge")
+if (!dir.exists(pathout)) dir.create(pathout, recursive=T)
 
 F_vec <- list()
 #species = species[1:2]
@@ -61,7 +64,7 @@ for (sp in SP){
   
   for (Fmax in multipliers){
     Fmax_dir <- sp_dir[grep(pattern = paste0("Fmax", Fmax, "_"), sp_dir)]
-    for (Fstart in multipliers){
+    for (Fstart in 1){ #multipliers){
       dir <- Fmax_dir[grep(pattern = paste0("Fstart", Fstart, "_sp", sp_i, ".R"), Fmax_dir)]
       
       if (length(list.files(dir))<1){
@@ -98,7 +101,7 @@ for (sp in SP){
 
          for (nm in names(reshape_data_Ne[[sp]][["data_Ne"]])){
            # should we sum or average the cohorts dimensions ? 
-          fct_i = ifelse(nm %in% c("biomassByAge", "schoolNumber", "abundanceMature", "eggNumberByAge", "abundanceByAge"), "mean", 
+          fct_i = ifelse(nm %in% c("biomassByAge", "schoolNumber", "abundanceMature", "eggNumberByAge", "abundanceByAge", "GonadWeight"), "mean", 
                    ifelse(nm %in% c("sizeMature", "mortalityByAge", "meanSizeByAge", "fecundityByAge", "Mpred", "Mstar", "Mnat", "F", "Z", "Mfor", "Dis", "meanWeightByAge"), "mean", "total"))
           new_nm <- paste0(fct_i, "_of_", nm, "_per_age") 
           new_trait_dim[which(trait_dim == nm)] <- new_nm
@@ -131,96 +134,97 @@ for (sp in SP){
         data_t <- data_rep[,-1]
         data_t$replicate <- rep
         data_t$var_F_for_sp <- sp
-        if (rep == 0){
-          dat <- data_t
-        } else {
-          dat <- rbind(dat, data_t)
-        }
+        
+        
+        #Replicate : saving one replicate at a time instead of all of them together
+        # if (rep == 0){
+        #   dat <- data_t
+        # } else {
+        #   dat <- rbind(dat, data_t)
+        # }
+        
+        pathoutputRDATA <-paste0(pathout, "/RDATA/Fmax", Fmax, "_Fstart", Fstart, "_sp", sp)
+        if (!dir.exists(pathoutputRDATA)){dir.create(pathoutputRDATA, recursive = T)}
+        save(data_complete, file=paste0(pathoutputRDATA, "/data_traits_summary_Fmax_", Fmax, "_Fstart_", Fstart, "_replicate_", rep, ".RData"))
+        
       }#replicate
 
-      dat$Fish_press <- paste0("Fmax=", Fmax, " Fstart=", Fstart)
-      if (Fmax == Fmax_1 & Fstart == Fstart_1) {
-        data_complete <- dat
-      } else { data_complete <- rbind(data_complete, dat) }
+      #Fmax & Fstart : saving one at a time instead of all together
+      # dat$Fish_press <- paste0("Fmax=", Fmax, " Fstart=", Fstart)
+      # if (Fmax == Fmax_1 & Fstart == Fstart_1) {
+      #   data_complete <- dat
+      # } else { data_complete <- rbind(data_complete, dat) }
   
     }#Fstart
   }#Fmax
 
 
   
-  #save dataset
-  pathoutputRDATA <-paste0(pathout, "/RDATA/Fmax", Fmax, "_Fstart", Fstart, "_sp", sp)
-  if (!dir.exists(pathoutputRDATA)){dir.create(pathoutputRDATA, recursive = T)}
+  #save dataset with Fmax and Fstart and replicates varying
+  # pathoutputRDATA <-paste0(pathout, "/RDATA/Fmax", Fmax, "_Fstart", Fstart, "_sp", sp)
+  # if (!dir.exists(pathoutputRDATA)){dir.create(pathoutputRDATA, recursive = T)}
   # if (!file.exists(paste0(pathoutputRDATA, "/data_traits_summary.RData"))){
-    save(data_complete, file=paste0(pathoutputRDATA, "/data_traits_summary.RData"))
+  #   save(data_complete, file=paste0(pathoutputRDATA, "/data_traits_summary.RData"))
   # } else {
-    # load(file=paste0(pathoutputRDATA, "/data_traits_summary.RData"))
+  #   load(file=paste0(pathoutputRDATA, "/data_traits_summary.RData"))
   #   data_save <- rbind(loaded_data, data_complete)
   #   save(data_save, file=paste0(pathoutputRDATA, "/data_traits_summary.RData"))
   # }
     
-  # PLOT the mean and the std deviation
-  # adding the sum of mortalities by age
-  #data_complete$value[which(data_complete$TRAIT == "fecundityByAge")] <- log(data_complete$value[which(data_complete$TRAIT == "fecundityByAge")]+10^{-8}) # easier to plot
-  data_tot_summary <- data_complete %>%
-    group_by(age, Species, Fish_press, TRAIT) %>%
-    summarise(mean = mean(value, na.rm = TRUE),
-              sd   = sd(value, na.rm = TRUE))
-  data_tot_summary$age <- as.numeric(data_tot_summary$age)
-  # data_tot_summary_t <- data_tot_summary[which(data_tot_summary$TRAIT %in%
-  #                c("abundanceByAge", "fecundityByAge", "mortalityByAge", "Mpred", "Mstar", "Mnat", "F", "Z", "Mfor", "Dis")),]
-  # data_tot_summary <- data_tot_summary[-which(data_tot_summary$TRAIT %in%
-  #                c("abundanceByAge", "fecundityByAge", "mortalityByAge", "Mpred", "Mstar", "Mnat", "F", "Z", "Mfor", "Dis")), ]
-  # data_tot_summary <- rbind(data_tot_summary_t, data_tot_summary)
   
-  
-  plot_trait = list()
-  
-  for (TRAIT in new_trait_dim){
-    for (sp_plotted in sp){
-
-      data_tot_summary_tr    <- data_tot_summary[which(data_tot_summary$TRAIT==TRAIT),]
-      data_tot_summary_tr_sp <- data_tot_summary_tr[which(data_tot_summary_tr$Species==sp_plotted),] 
-
-      # reorder Fmax/Fstart factor for prettier plots
-      data_tot_summary_tr_sp$Fish_press    <- factor(as.factor(data_tot_summary_tr_sp$Fish_press), levels = ideal_order_factor)
-
-      
-      if(nrow(data_tot_summary_tr_sp)==0){
-        plot_trait[[TRAIT]][[sp_plotted]] <- ggplot(data = data_tot_summary_tr_sp, aes(x = age, group = Fish_press)) 
-        next}
-      
-      reference <- subset(na.omit(data_tot_summary_tr_sp), Fish_press == paste0("Fmax=", F_vec[[sp]][1], " Fstart=", F_vec[[sp]][2]))
-
-
-      x_axis <- "Age"
-      #tr = ifelse(grepl(TRAIT, pattern= "fecundityByAge"), "log egg number", TRAIT)
-      title = paste0("By cohort ", sp_plotted, " ranges of ", TRAIT, "\nF varies for", sp, ", reference is", F_vec[[sp]])
-      plot_trait[[TRAIT]][[sp_plotted]] <- ggplot(data = data_tot_summary_tr_sp, aes(x = age, group = Fish_press)) +
-        geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd),
-                    alpha = 0.5, fill = "grey70")+
-        # 1) Layer: each panel gets its own group (via facet_wrap)
-        geom_line(aes(y = mean)) +
-        # 2) Layer: reference group A, drawn in all panels
-        geom_ribbon(data = reference,
-                    fill = "grey70", alpha = 0.5,
-                    aes(x = age, ymin = mean-sd, ymax = mean+sd, group = 1)) +
-        geom_line(data = reference,
-                  aes(x = age, y = mean, group = 1),
-                  linetype = "dashed", linewidth = 0.7) +
-        theme_bw()+
-        ylab(label = TRAIT)+
-        xlab(label = x_axis)+
-        labs(title = title)+
-        facet_wrap(~ Fish_press)
-    }
-    
-    pdf(file = paste0(pathout, "/plot_", TRAIT, "_Sp_fish_", sp, ".pdf"), width = 10, height = 8)
-    par(mfrow=c(1,1))
-    print(plot_trait[[TRAIT]])
-    dev.off()
-    
-  } #trait plot
+  #PLOT the mean and the std deviation
+  # data_tot_summary <- data_complete %>%
+  #   group_by(age, Species, Fish_press, TRAIT) %>%
+  #   summarise(mean = mean(value, na.rm = TRUE),
+  #             sd   = sd(value, na.rm = TRUE))
+  # data_tot_summary$age <- as.numeric(data_tot_summary$age)
+  # 
+  # plot_trait = list()
+  # for (TRAIT in new_trait_dim){
+  #   for (sp_plotted in sp){
+  # 
+  #     data_tot_summary_tr    <- data_tot_summary[which(data_tot_summary$TRAIT==TRAIT),]
+  #     data_tot_summary_tr_sp <- data_tot_summary_tr[which(data_tot_summary_tr$Species==sp_plotted),] 
+  # 
+  #     # reorder Fmax/Fstart factor for prettier plots
+  #     data_tot_summary_tr_sp$Fish_press    <- factor(as.factor(data_tot_summary_tr_sp$Fish_press), levels = ideal_order_factor)
+  # 
+  #     
+  #     if(nrow(data_tot_summary_tr_sp)==0){
+  #       plot_trait[[TRAIT]][[sp_plotted]] <- ggplot(data = data_tot_summary_tr_sp, aes(x = age, group = Fish_press)) 
+  #       next}
+  #     
+  #     reference <- subset(na.omit(data_tot_summary_tr_sp), Fish_press == paste0("Fmax=", F_vec[[sp]][1], " Fstart=", F_vec[[sp]][2]))
+  # 
+  # 
+  #     x_axis <- "Age"
+  #     #tr = ifelse(grepl(TRAIT, pattern= "fecundityByAge"), "log egg number", TRAIT)
+  #     title = paste0("By cohort ", sp_plotted, " ranges of ", TRAIT, "\nF varies for", sp, ", reference is", F_vec[[sp]])
+  #     plot_trait[[TRAIT]][[sp_plotted]] <- ggplot(data = data_tot_summary_tr_sp, aes(x = age, group = Fish_press)) +
+  #       geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd),
+  #                   alpha = 0.5, fill = "grey70")+
+  #       # 1) Layer: each panel gets its own group (via facet_wrap)
+  #       geom_line(aes(y = mean)) +
+  #       # 2) Layer: reference group A, drawn in all panels
+  #       geom_ribbon(data = reference,
+  #                   fill = "grey70", alpha = 0.5,
+  #                   aes(x = age, ymin = mean-sd, ymax = mean+sd, group = 1)) +
+  #       geom_line(data = reference,
+  #                 aes(x = age, y = mean, group = 1),
+  #                 linetype = "dashed", linewidth = 0.7) +
+  #       theme_bw()+
+  #       ylab(label = TRAIT)+
+  #       xlab(label = x_axis)+
+  #       labs(title = title)+
+  #       facet_wrap(~ Fish_press)
+  #   }
+  #   
+  #   pdf(file = paste0(pathout, "/plot_", TRAIT, "_Sp_fish_", sp, ".pdf"), width = 10, height = 8)
+  #   par(mfrow=c(1,1))
+  #   print(plot_trait[[TRAIT]])
+  #   dev.off()
+  #   
+  # } #trait plot
 } #sp plot
 }#function
 
