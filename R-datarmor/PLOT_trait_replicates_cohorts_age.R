@@ -1,9 +1,10 @@
 
 
-PLOT_trait_replicates2 <- function(SP, Time1=150, Time2=160, path_in){
+PLOT_trait_replicates2 <- function(SP, Time1=150, Time2=160, path_in, simu_name){
 
 # setwd("X:/osmose-ns")
-main = "New_gpu_conf_RCP.R"
+if (simu_name == "Chap3") main = "New_gpu_conf_RCP.R"
+if (simu_name == "Chap2") main = "New_gpu_conf.R"
 
 repo        = "Simu_LONG"
 multip_name = "y"
@@ -13,7 +14,7 @@ trait_dim= c("GonadWeight", "meanWeightByAge", "abundanceMature",
      "meanSizeByAge", "fecundityByAge",
      "Mpred", "Mstar", "Mnat", "F", "Mfor",
      "abundanceByAge", "biomassByAge", 
-     "mortalityByAge", #"schoolNumber", 
+     "mortalityByAge", 
      "sizeMature", "eggNumberByAge")
 
 trait_dim = c("meanWeightByAge", "enetByAge")
@@ -38,7 +39,7 @@ list_d <- list.dirs(path = path_in, recursive = F, full.names = T)
 # nage = years
 
 pathout <- paste0("output/PLOTS/Trait_variables_by_cohort_by_age_withWbyAge")
-pathout <- paste0("/home1/datawork/mbeneat/output/SIMU/CHAP3/Trait_variables_by_cohort_by_age_withWbyAge")
+pathout <- paste0("/home1/datawork/mbeneat/output/SIMU/", simu_name, "/Trait_variables_by_cohort_by_age_withWbyAge")
 if (!dir.exists(pathout)) dir.create(pathout, recursive=T)
 
 F_vec <- list()
