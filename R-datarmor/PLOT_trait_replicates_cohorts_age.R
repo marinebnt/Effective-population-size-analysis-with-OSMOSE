@@ -1,10 +1,13 @@
 
-
 PLOT_trait_replicates2 <- function(SP, Time1=150, Time2=160, path_in, simu_name){
 
 # setwd("X:/osmose-ns")
-if (simu_name == "Chap3") main = "New_gpu_conf_RCP.R"
-if (simu_name == "Chap2") main = "New_gpu_conf.R"
+if (grepl(simu_name, pattern= "Chap3")) {
+    main = "New_gpu_conf_RCP.R"
+    term = "$"} 
+if (grepl(simu_name, pattern= "Chap2")) {
+    main = "New_gpu_conf.R"
+    term = ".R"}
 
 repo        = "Simu_LONG"
 multip_name = "y"
@@ -67,8 +70,10 @@ for (sp in SP){
   for (Fmax in multipliers){
     Fmax_dir <- sp_dir[grep(pattern = paste0("Fmax", Fmax, "_"), sp_dir)]
     for (Fstart in 1){ #multipliers){
-      dir <- Fmax_dir[grep(pattern = paste0("Fstart", Fstart, "_sp", sp_i, "$"), Fmax_dir)]
-      
+      dir <- Fmax_dir[grep(pattern = paste0("Fstart", Fstart, "_sp", sp_i, term), Fmax_dir)]
+     
+      cat(dir)
+ 
       if (length(list.files(dir))<1){
         cat("\ndata missing", dir, "\n")
         next}
@@ -104,7 +109,7 @@ for (sp in SP){
          for (nm in names(reshape_data_Ne[[sp]][["data_Ne"]])){
            # should we sum or average the cohorts dimensions ? 
           fct_i = ifelse(nm %in% c("biomassByAge", "schoolNumber", "abundanceMature", "eggNumberByAge", "abundanceByAge", "GonadWeight"), "mean", 
-                   ifelse(nm %in% c("sizeMature", "mortalityByAge", "meanSizeByAge", "fecundityByAge", "Mpred", "Mstar", "Mnat", "F", "Z", "Mfor", "Dis", "meanWeightByAge"), "mean", "total"))
+                   ifelse(nm %in% c("sizeMature", "mortalityByAge", "meanSizeByAge", "fecundityByAge", "Mpred", "Mstar", "Mnat", "F", "Z", "Mfor", "Dis", "meanWeightByAge", "enetByAge"), "mean", "total"))
           new_nm <- paste0(fct_i, "_of_", nm, "_per_age") 
           new_trait_dim[which(trait_dim == nm)] <- new_nm
           data_t_t <- reshape_data_Ne[[species[1]]][["data_Ne"]][[nm]]
