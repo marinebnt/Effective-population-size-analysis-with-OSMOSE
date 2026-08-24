@@ -1,6 +1,6 @@
 
 
-PLOT_trait_replicates2 <- function(SP, Time1=150, Time2=160){
+PLOT_trait_replicates2 <- function(SP, Time1=150, Time2=160, path_in){
 
 # setwd("X:/osmose-ns")
 main = "New_gpu_conf_RCP.R"
@@ -16,15 +16,13 @@ trait_dim= c("GonadWeight", "meanWeightByAge", "abundanceMature",
      "mortalityByAge", #"schoolNumber", 
      "sizeMature", "eggNumberByAge")
 
+trait_dim = c("meanWeightByAge", "enetByAge")
+
 ideal_order_factor <- paste0("Fmax=", rep(c(0.5,0.75,1,1.25,1.5), 5),
                              " Fstart=", c(rep(0.5, 5),rep(0.75, 5),rep(1, 5),rep(1.25, 5),rep(1.5, 5)))
 
 
 configDir=getwd()
-path_in <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/osmose-ns-v4.4.1_clim/output/old/test")
-# path_in <- c("Y:/outputs-meso-marine")
-path_in <- c("/home1/datawork/mbeneat/SIMU_CHAP2_FIN")
-path_in <- c("/home/datawork-marbec-scenlab/OSMOSE/Marine/SIMU_CHAP3_FIN")
 
 list_d <- list.dirs(path = path_in, recursive = F, full.names = T)
 
@@ -68,7 +66,7 @@ for (sp in SP){
   for (Fmax in multipliers){
     Fmax_dir <- sp_dir[grep(pattern = paste0("Fmax", Fmax, "_"), sp_dir)]
     for (Fstart in 1){ #multipliers){
-      dir <- Fmax_dir[grep(pattern = paste0("Fstart", Fstart, "_sp", sp_i, ".R"), Fmax_dir)]
+      dir <- Fmax_dir[grep(pattern = paste0("Fstart", Fstart, "_sp", sp_i, "$"), Fmax_dir)]
       
       if (length(list.files(dir))<1){
         cat("\ndata missing", dir, "\n")
@@ -148,7 +146,7 @@ for (sp in SP){
         
         pathoutputRDATA <-paste0(pathout, "/RDATA/Fmax", Fmax, "_Fstart", Fstart, "_sp", sp)
         if (!dir.exists(pathoutputRDATA)){dir.create(pathoutputRDATA, recursive = T)}
-        save(data_complete, file=paste0(pathoutputRDATA, "/data_traits_summary_Fmax_", Fmax, "_Fstart_", Fstart, "_replicate_", rep, ".RData"))
+        save(data_t, file=paste0(pathoutputRDATA, "/data_traits_summary_Fmax_", Fmax, "_Fstart_", Fstart, "_replicate_", rep, ".RData"))
         
       }#replicate
 

@@ -8,9 +8,9 @@ handlers("txtprogressbar")
 SP = c("AtlanticHerring",  "AtlanticMackerel", "Sandeel",  "EuropeanSprat", "NorwayPout",       
        "EuropeanPlaice", "CommonSole", "Saithe", "AtlanticCod", "Haddock",  "HorseMackerel",
        "Whiting",  "CommonDab", "GreyGurnard", "Hake")
-main = "New_gpu_conf.R"
-source("osmose-ns-v4.4.1_clim/R-datarmor/plot_all_Ne2.R")
-source("osmose-ns-v4.4.1_clim/R/functions/source.R")
+main = "New_gpu_conf_RCP.R"
+source("R-datarmor/plot_all_Ne2.R")
+source("R/functions/source.R")
 
 with_progress({
   p <- progressor(along = SP)    # create a progressor function with length = length(SP)

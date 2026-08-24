@@ -7,16 +7,16 @@ plot_all_Ne2 <- function(SP){
   multip_name = "y"
   multipliers = c(1,0.5,0.75,1.25,1.5)
   removing_senescence_param = F #***************
-  
+  configDir=getwd()
   
   ideal_order_factor <- paste0("Fmax=", rep(c(0.5,0.75,1,1.25,1.5), 5),
                                " Fstart=", c(rep(0.5, 5),rep(0.75, 5),rep(1, 5),rep(1.25, 5),rep(1.5, 5)))
   
   
-  path_in <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/osmose-ns-v4.4.1_clim/output/test")
-  # path_in <- c("Y:/outputs-meso-marine")
+  path_in <- c("output/DATASETS/old")
+  path_in <- c("C:/Users/mbeneat/Documents/ZAutres/simu_test")
   path_in <- c("/home1/datawork/mbeneat/SIMU_CHAP2_FIN")
-  list_d <- list.dirs(path = path_in, recursive = F, full.names = T)
+  list_d <- list.dirs(path = path_in, recursive = F, full.names = T)[1]
   # for the test : has to be erased when real launch
   # nb_sp = 7
   # species = species[1:7]
@@ -55,7 +55,7 @@ for (sp in SP){
   sp_i <- which(spec_names == sp)-1
   species = spec_names[c(c(sp_i+1), ifelse(sp_i<14, sp_i+2, 1))]
   # open one dir at a time
-  sp_dir <- list_d[grep(pattern = paste0("sp", sp_i, ".R"), list_d)]
+  sp_dir <- list_d[grep(pattern = paste0("sp", sp_i), list_d)]
   
   if (length(sp_dir)<1) next
   
@@ -637,7 +637,6 @@ rm(INIT2)
   
 } #sp
 }# loop
-
 # for (sp in species){
 #   pathout <- paste0(configDir, "/output/PLOTS/All_genetic_drift_indicators")
 #   dir.create(pathout, recursive = T)

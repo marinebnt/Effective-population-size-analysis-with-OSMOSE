@@ -97,7 +97,6 @@ estimate_Ne <- function(outputDir_Ne, data_Ne_shape, species, nb_rep, input_dir,
   
   # estimate Dead before removing senescence (removing data at last age), otherwise huge mortality at last step
   for (sp in species){
-    cat("Dead nb \n", "sp", sp)
     for (rep in 1:nb_rep){
       # Dead individuals # OK
       abundanceByAge <- data_Ne_shape2[[sp]][["abundanceByAge"]][[paste0("rep_", rep)]]
@@ -202,15 +201,18 @@ estimate_Ne <- function(outputDir_Ne, data_Ne_shape, species, nb_rep, input_dir,
       rescaling_f <- t(matrix(apply(birthrate*surviv_curve, 2, sum, na.omit=T), ncol= nrow(birthrate), nrow=ncol(birthrate)))
       birthrate_scaled <- birthrate/rescaling_f # rescaling method 1 
       
-      colnames(birthrate_scaled) <- colnames(eggNb)
-      rownames(birthrate_scaled) <- rownames(eggNb)
-
+      colnames(birthrate_scaled) <- colnames(dead)
+      rownames(birthrate_scaled) <- rownames(dead)      
+      colnames(birthrate) <- colnames(dead)
+      rownames(birthrate) <- rownames(dead)
       data_Ne_shape2[[sp]][["b_rate_sc"]][[paste0("rep_", rep)]] <- birthrate_scaled
       data_Ne_shape2[[sp]][["b_rate"]][[paste0("rep_", rep)]] <- birthrate
       
       # save also the egg number associated with the scaled birthrate
       eggNb <- abundanceByAge*birthrate_scaled 
       eggNb[which(eggNb=="NaN", arr.ind = T)] <- 0
+      colnames(eggNb) <- colnames(dead)
+      rownames(eggNb) <- rownames(dead)
       data_Ne_shape2[[sp]][["eggNumber_sc"]][[paste0("rep_", rep)]]  <- eggNb
 
       # verifying that the egg production = as many adult N1 of this cohort after rescaling
@@ -333,12 +335,12 @@ estimate_Ne <- function(outputDir_Ne, data_Ne_shape, species, nb_rep, input_dir,
     data_Ne_shape2[[sp]][["Vk_point"]] <- Vk_point_df
 
     colnames(data_Ne_shape2[[sp]][["DeadSum"]]) <- colnames(Vk_point_df)
-    for (dims in names(data_Ne_shape2[[sp]])[17]){
-      if (is.matrix(data_Ne_shape2[[sp]][[dims]])) {
-        data_Ne_shape2[[sp]][[dims]] <- reshape_matrix_to_expand(data_Ne_shape2[[sp]][[dims]], 
-                                                                 as.variable = F, varName = dims)
-        next
-      }
+    for (dims in names(data_Ne_shape2[[sp]])){
+      # if (is.matrix(data_Ne_shape2[[sp]][[dims]])) {
+      #   data_Ne_shape2[[sp]][[dims]] <- reshape_matrix_to_expand(data_Ne_shape2[[sp]][[dims]], 
+      #                                                            as.variable = F, varName = dims)
+      #   next
+      # }
       if (is.list(data_Ne_shape2[[sp]][[dims]]) && length(data_Ne_shape2[[sp]][[dims]])==1){
         data_Ne_shape2[[sp]][[dims]] <- reshape_data(data_Ne_shape2[[sp]][[dims]], as.variable = T, varName = dims)
       }

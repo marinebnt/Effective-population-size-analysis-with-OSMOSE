@@ -46,22 +46,40 @@ clean_values <- function(df, value_col = "value") {
 
 # estiamte ssdg as the sum of the delta*Dead/N per age
 add_SSDg <- function(df, relative=F){   
-  df_m <- df %>%
-    group_by(age, Fmax, Fstart, variable, Species)%>%
-    summarise(value=mean(value, na.rm=T))
-  if (relative==T) {
-    relatived <- df_m %>% filter(Fmax==1) 
-    relatived <- relatived[, -which(colnames(relatived) == c("Fmax"))]
-    colnames(relatived)[which(colnames(relatived) == "value")] <- "relative"
-    dfi <- full_join(df_m, relatived)
-    dfi$value <- (dfi$value - dfi$relative)/abs(dfi$relative)
-    df_m <- dfi
-  }
-  df_s <- df_m %>%
-    group_by(variable, Fmax, Fstart, Species) %>%
+  df_s <- df %>%
+    group_by(variable, Fmax, Fstart, Species, replicate) %>%
     summarize(SSDg = sum(value, na.rm = T))%>%
     ungroup()
-  return(df_s)
+  
+  if (relative==T) {
+    relatived <- df_s %>% filter(Fmax==1) 
+    relatived <- relatived[, -which(colnames(relatived) == c("Fmax"))]
+    colnames(relatived)[which(colnames(relatived) == "SSDg")] <- "relative"
+    dfi <- full_join(df_s, relatived)
+    dfi$SSDg <- (dfi$SSDg - dfi$relative)/abs(dfi$relative)
+    df_s <- dfi
+  }  
+  
+  df_m <- df_s %>%
+    group_by(Fmax, Fstart, variable, Species)%>%
+    summarise(across(SSDg, list(sd = sd, mean = mean)))
+  
+  for(sp in unique(df_m$Species)) {
+    Fmax_coll <- Fmax_remove_collapses(sp)
+    if (!all(is.na(Fmax_coll))) {
+      if (any("Species" %in% colnames(df_m))) {
+        df_temp <- df_m[which(df_m$Species == sp), ]
+        df_temp[which(df_temp$Fmax %in% Fmax_coll), "SSDg_mean"] <- NA
+        df_temp[which(df_temp$Fmax %in% Fmax_coll), "SSDg_sd"] <- NA
+        df_m[which(df_m$Species == sp), ] <- df_temp
+      } else {
+        df_m[which(df_m$Fmax %in% Fmax_coll), "SSDg_mean"] <- NA
+        df_m[which(df_m$Fmax %in% Fmax_coll), "SSDg_sd"] <- NA
+      }
+    }
+  }
+  
+  return(df_m)
 }
 
 
@@ -310,23 +328,31 @@ format_slope_subtitle <- function(df, x_col = "Fmax", y_col = "mean", group_col 
 
 
 # shorter and more explicit variable names
+improve_parm_names <- function(vector){
+  vector <- stringr::str_replace(vector, pattern="Fmax", replacement = "\u03B8F")
+}
+
 improve_vriable_names <- function(vector){
+  vector <- stringr::str_replace(vector, pattern="b_rate_sc", replacement = "Birth rate (scaled)")  
+  vector <- stringr::str_replace(vector, pattern="mean_of_abundanceMature_per_age", replacement = "Nmat_\u03C4")
+  vector <- stringr::str_replace(vector, pattern="Mtot", replacement = "Mortality rate")
+  vector <- stringr::str_replace(vector, pattern="abundanceByAge", replacement = "Abundance")
+  vector <- stringr::str_replace(vector, pattern="mean_of_meanWeightByAge_per_age", replacement = "Individual weight")
   vector <- stringr::str_replace(vector, pattern="SSDgx_Mpred", replacement = "Predation SSD\u0262 (\u0394²Dead_Pred)")
   vector <- stringr::str_replace(vector, pattern="SSDgx_Mstar", replacement = "Starvation SSD\u0262 (\u0394²Dead_Starv)")
   vector <- stringr::str_replace(vector, pattern="SSDgx_F", replacement = "Fisheries SSD\u0262 (\u0394²Dead_F)")
   vector <- stringr::str_replace(vector, pattern="SSDgx_Mnat", replacement = "Natural SSD\u0262 (\u0394²Dead_Natural)")
-  vector <- stringr::str_replace(vector, pattern="SSDgx\nDivNumerator_N_alpha", replacement = "SSD\u0262/N\u03B1 (\u0394²Dead/N\u03B1)")
-  vector <- stringr::str_replace(vector, pattern="SSDg", replacement = "SSD\u0262 (\u0394²Dead)")
   vector <- stringr::str_replace(vector, pattern="Numerator_N_alpha", replacement = "N\u03B1")
   vector <- stringr::str_remove(vector, pattern="x")      
   vector <- stringr::str_replace(vector, pattern="Delta", replacement = "\u0394")
-  vector <- stringr::str_replace(vector, pattern="square", replacement = "²")
+  vector <- stringr::str_replace(vector, pattern="square", replacement = "²\u03C4")
   vector <- stringr::str_replace(vector, pattern="\nDiv", replacement = "/")
   vector <- stringr::str_remove(vector, pattern="colSum")      
   vector <- stringr::str_remove(vector, pattern="mean_of_")      
   vector <- stringr::str_remove(vector, pattern="_per_age")      
   vector <- stringr::str_replace(vector, pattern="sum_mortality_rates", replacement = "M")
-  vector <- stringr::str_replace(vector, pattern="Mstar", replacement = "Mstarvation")
+  vector <- stringr::str_replace(vector, pattern="Mstar", replacement = "Starvation mortality rate")
+  vector <- stringr::str_replace(vector, pattern="Mstar", replacement = "Starvation mortality rate")
   vector <- stringr::str_replace(vector, pattern="Madd", replacement = "Madditional")
   vector <- stringr::str_replace(vector, pattern="generation_length", replacement = "T")
   vector <- stringr::str_replace(vector, pattern="all_deaths", replacement = "Deathtot")
@@ -344,9 +370,28 @@ improve_vriable_names <- function(vector){
   vector <- stringr::str_replace(vector, pattern="Mstarvation_deaths", replacement = "Starvation deaths")
   vector <- stringr::str_replace(vector, pattern="tot_deaths", replacement = "All deaths")
   vector <- stringr::str_replace(vector, pattern="\nsum", replacement = " - ")
-  vector <- stringr::str_replace(vector, pattern="eggNumber_sc", replacement = "Eggs")
+  vector <- stringr::str_replace(vector, pattern="eggNumber_sc", replacement = "Eggs (scaled for constant N\u03B1)")  
+  vector <- stringr::str_replace(vector, pattern="F", replacement = "Fishing\nmortality rate\u03C4")
+  vector <- stringr::str_replace(vector, pattern="Mpred", replacement = "Predation\nmortality rate\u03C4")
+  vector <- stringr::str_replace(vector, pattern="Mnat", replacement = "Natural\nmortality rate\u03C4")
+  vector <- stringr::str_replace(vector, pattern="Ne_NT", replacement = "N\u2091/NT")
+  vector <- stringr::str_replace(vector, pattern="T/Vk.", replacement = "T/Vk")
+  vector <- stringr::str_replace(vector, pattern="T/Vk", replacement = "T/Vk.")
+  vector <- stringr::str_replace(vector, pattern="eggNumber", replacement = "egg number_\u03C4")
+  vector <- stringr::str_replace(vector, pattern="Dead", replacement = "Dead\u03C4")
+  vector <- stringr::str_replace(vector, pattern="SSDg/Nα", replacement = "(SSD\u0262/N\u03B1)\u03C4 ((\u0394²Dead/N\u03B1)\u03C4)")
+  vector <- stringr::str_replace(vector, pattern="SSDg", replacement = "SSD\u0262,\u03C4 ((\u0394\u03C4²Dead)\u03C4)")
   # vector <- expression(vector)
 }
+
+Fmax_remove_collapses<- function(sp){
+  Fmax_coll=NA
+  if (sp %in% c("AtlanticCod", "GreyGurnard", "Hake")) Fmax_coll <- c(1.25,1.5)
+  if (sp %in% c("NorwayPout", "Sandeel", "Whiting")) Fmax_coll <- c(1.5)
+  return(Fmax_coll)
+}
+
+
 
 
 
@@ -362,7 +407,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
                                spec, age_dim=FALSE, sp_dim=FALSE, 
                                reference_input=NULL, FORCElm=F, title = "regular", scale_facet="free",
                                # weight, 
-                               chosen_title=NULL, subtitle=NULL,
+                               chosen_title=NULL, subtitle=NULL,legend_justif="inside",
                                position_legend="auto", ncol=2, nrow=2, facet=T, scale_z = T) {
   
   plot_name_ch=c()
@@ -422,7 +467,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
   }
   if ((relative_to_ref | proportional) & (nrow(ref_data) == 0)) cat("no data in ref_data")
   if ((relative_to_ref | proportional) & nrow(ref_data)>0) {
-    if (any(ref_data$ref_value == 0)) {
+    if (any(ref_data$ref_value == 0, na.omit=T)) {
       ref_data$ref_value      <- ref_data$ref_value + 0.000001
       df_trait_sp_F$value <- df_trait_sp_F$value + 0.000001
     }
@@ -439,7 +484,8 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
         full_join(ref_data, relationship = "many-to-many") 
     }
     if (nrow(ref_data)>1 & relative_to_ref){
-      if (length(var_x)==1) {df_trait_sp_F <- df_trait_sp_F %>%
+      if (length(var_x)==1) {
+        df_trait_sp_F <- df_trait_sp_F %>%
         group_by(replicate, variable, .data[[var_x]]) %>%
         mutate(value =(value - ref_value)/abs(ref_value)) %>%
         dplyr::select(-ref_value)
@@ -619,6 +665,22 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     shape_var <- c("variable", "Fmax")[which.max( c(length(table(df_trait_sp_F_mean_sd$variable)), length(table(df_trait_sp_F_mean_sd$Fmax))))]}
   df_trait_sp_F_mean_sd$variable <- as.factor(df_trait_sp_F_mean_sd$variable)
   df_trait_sp_F_mean_sd$variable <- factor(df_trait_sp_F_mean_sd$variable)
+  
+  for(sp in spec) {
+    Fmax_coll <- Fmax_remove_collapses(sp)
+    if (!all(is.na(Fmax_coll))) {
+      if (any("Species" %in% colnames(df_trait_sp_F_mean_sd))) {
+        df_temp <- df_trait_sp_F_mean_sd[which(df_trait_sp_F_mean_sd$Species == sp), ]
+        df_temp[which(df_temp$Fmax %in% Fmax_coll), "mean"] <- NA
+        df_temp[which(df_temp$Fmax %in% Fmax_coll), "sd"] <- NA
+        df_trait_sp_F_mean_sd[which(df_trait_sp_F_mean_sd$Species == sp), ] <- df_temp
+      } else {
+        df_trait_sp_F_mean_sd[which(df_trait_sp_F_mean_sd$Fmax %in% Fmax_coll), "mean"] <- NA
+        df_trait_sp_F_mean_sd[which(df_trait_sp_F_mean_sd$Fmax %in% Fmax_coll), "sd"] <- NA
+      }
+    }
+  }
+  
   if (length(var_x) == 1) {
     # remove the variables that have only one age class or NAs in the ssdg sums for instance
     if (any(sapply(df_trait_sp_F_mean_sd$variable, FUN = function(x) (all(is.na(df_trait_sp_F_mean_sd$mean[which(df_trait_sp_F_mean_sd$variable == x)])))))) {
@@ -667,12 +729,12 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     # facet_wrap(~Fstart, labeller = Fstart_names) +
     labs(
       title = title,
-      x = var_x,
+      x = improve_parm_names(var_x),
       y =  name_y, 
       subtitle = spec
     ) 
     
-    if (scale_z == T){
+    if (!(z_axis == "")){
       p <- p+
         scale_y_continuous(
           # limits = limits,
@@ -684,7 +746,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     
     if (all(legend_pos !=c(1,0.5))) {
       p <- p+
-        theme(legend.position = "inside",
+        theme(legend.position = legend_justif,
               legend.position.inside = legend_pos,
               legend.spacing.y = unit(0, "mm")) 
     }
@@ -715,12 +777,13 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     legend_pos <- resolve_legend_position(
       position_legend = position_legend,
       df = df_trait_sp_F_mean_sd,
-      x_col = var_x[1],
+      x_col = improve_parm_names(var_x[1]),
       y_col = "mean",
       legend_labels = df_trait_sp_F_mean_sd$Species,
       y_axis_name = name_y,
       z_axis_name = z_axis
     )
+    if (facet==T & legend_justif=="inside") legend_pos <- c(0.9, 0.4)
     p <- ggplot(df_trait_sp_F_mean_sd, aes(x = .data[[var_x[1]]], y = mean, #mean,
                                    shape = .data[[var_x[2]]], colour=variable, group = interaction(variable, .data[[var_x[2]]]))) +
       # geom_smooth(method = method, se=TRUE) +
@@ -733,9 +796,10 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
       # facet_wrap(~Fstart, labeller = Fstart_names) +
       labs(
         title = title,
-        x = var_x,
+        x = improve_parm_names(var_x),
         y =  name_y, 
-        subtitle = subtitle
+        subtitle = subtitle,
+        shape=improve_parm_names()
       ) +
       theme(panel.background = element_rect(fill = "white", colour = "grey50"), 
             plot.title = element_text(hjust = 0.5), 
@@ -755,7 +819,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
         geom_point(size=3, colour="black") +
         geom_line(colour="black")
     }
-    if (scale_z == T){
+    if (!(z_axis == "")){
       p <- p+
         scale_y_continuous(
           # limits = limits,
@@ -765,9 +829,9 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
         )
     }
     
-    if (all(legend_pos !=c(1,0.5))) {
+    if (all(legend_pos !=c(1,0.5)) || (facet==T & legend_justif=="inside")) {
       p <- p+
-        theme(legend.position = "inside",
+        theme(legend.position = legend_justif,
               legend.position.inside = legend_pos,
               legend.spacing.y = unit(0, "mm")) 
     }
@@ -775,19 +839,19 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     if (length(df_trait_sp_F_mean_sd$variable)>1 & facet==T){
       p <- p+
         facet_wrap(~variable,nrow = nrow, ncol=ncol,drop=FALSE, scales = scale_facet)+
-        theme(legend.position.inside = c(1,0.3), 
+          theme(legend.position.inside = c(1,0.3), 
               legend.direction = "vertical")
       
-      if (all(legend_pos !=c(1,0.5))) p <- p+ theme(legend.box = "horizontal")
+      if (all(legend_pos !=c(1,0.5)) & legend_justif =="inside") p <- p+ theme(legend.box = "horizontal")
     }
-    if (relative_to_ref == T | proportional == T){
-      p <- p + 
-        theme(legend.position = "inside",
-              legend.position.inside = c(1,1),
-              legend.spacing.y = unit(0, "mm")) +
-        geom_hline(col="grey80", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=0)+
-        geom_hline(col="grey80", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=inv_scale_function(0, scale = scale, shift = shift))
-    }
+    # if (relative_to_ref == T | proportional == T){
+    #   p <- p + 
+    #     theme(legend.position = legend_justif,
+    #           legend.position.inside = c(1,1),
+    #           legend.spacing.y = unit(0, "mm")) +
+    #     geom_hline(col="grey80", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=0)+
+    #     geom_hline(col="grey80", linetype="dotted", lwd=0.8, alpha=0.6, yintercept=inv_scale_function(0, scale = scale, shift = shift))
+    # }
   }
   
   # Return both the ggplot object and the applied scaling factor.
@@ -1004,7 +1068,7 @@ plot_trait_facet_fmax <- function(df_trait_sp, trait_name, Time1, Time2, relativ
     theme(axis.text.x = element_text(angle = 60, hjust = 1),
           legend.position = "inside",
           legend.position.inside = legend_pos,
-          legend.justification = c("right", "top")) +
+          legend.justification = c("right", legend_justif)) +
     scale_y_continuous(
       # limits = limits,
       sec.axis = sec_axis(~scale_function(., scale_factor, shift), #. * scale, # (. - a)/b,  #sec_axis(~. * scale, 
@@ -1515,18 +1579,21 @@ estimate_BinaryOp <- function(trait_data_full_i, var, operator = "/") {
   # do we have the thirty age classes as expected ? If not, append matrix 30 times to uniformise dataset structure
   if (length(table(df_trait_t$age[which(df_trait_t$variable == unique(df_trait_t$variable)[1])])) != 
       length(table(df_trait_t$age[which(df_trait_t$variable == unique(df_trait_t$variable)[2])]))){
-    
+
     if (length(table(df_trait_t$age[which(df_trait_t$variable == unique(df_trait_t$variable)[1])]))%in%c(1,0)) vari=1
     if (length(table(df_trait_t$age[which(df_trait_t$variable == unique(df_trait_t$variable)[2])]))%in%c(1,0)) vari=2
-    if (is.null(vari)) stop("var to work with:", var, ", dataset variables", paste(unique(df_trait_t$variable), collapse=" "))
-    df_var_i <- df_trait_t[which(df_trait_t$variable == unique(df_trait_t$variable)[vari]), ]
-    df_else <- df_trait_t[which(df_trait_t$variable != unique(df_trait_t$variable)[vari]), ]
-    df_var = NULL
-    for (age in unique(df_else$age)) {
-      df_var_i$age <- age
-      df_var <- rbind(df_var, df_var_i)
+    if (is.null(vari)) 
+      warning("Incompatible age dimensions of ", paste(unique(df_trait_t$variable), collapse=" and "))
+    if (!is.null(vari)){
+            df_var_i <- df_trait_t[which(df_trait_t$variable == unique(df_trait_t$variable)[vari]), ]
+      df_else <- df_trait_t[which(df_trait_t$variable != unique(df_trait_t$variable)[vari]), ]
+      df_var = NULL
+      for (age in unique(df_else$age)) {
+        df_var_i$age <- age
+        df_var <- rbind(df_var, df_var_i)
+      }
+      df_trait_t = rbind(df_var, df_else)
     }
-    df_trait_t = rbind(df_var, df_else)
   }
   
   # Compute on long format directly to avoid repeated pivot_wider/pivot_longer cycles.
@@ -1689,19 +1756,30 @@ estimatecolSum <- function(trait_data_full_i, var){
     add <- c(add, "cohort")
     df_trait_t <- df_trait_t%>%
       group_by(replicate, Species, Fstart, Fmax, cohort) %>%
-      summarize(var = sum(value, na.rm = T))
-  } else {
+      summarize(var = sum(value, na.rm = T)) %>%
+      ungroup()
+  } 
+  if (any(grepl("Scenario", colnames(trait_data_full_i)))) {
+    add <- c(add, "Scenario")
+    df_trait_t <- df_trait_t%>%
+      group_by(replicate, Species, Fstart, Fmax, Scenario) %>%
+      summarize(var = sum(value, na.rm = T)) %>%
+      ungroup()
+    
+  }
+  if (!any(grepl("cohort", colnames(trait_data_full_i))) & !any(grepl("Scenario", colnames(trait_data_full_i)))){
     df_trait_t <- df_trait_t%>%
       group_by(replicate, Species, Fstart, Fmax) %>%
       summarize(var = sum(value, na.rm = T))
   }
   colnames(df_trait_t)[which(colnames(df_trait_t) == "var")] <- var[1]
-  data_end <- NULL
-  for (age in as.numeric(names(table(trait_data_full_i$age)))) {
-    df_trait_t$age <- age
-    data_end <- rbind(data_end, df_trait_t)
-  }
-  df_trait_t <- pivot_longer(data_end[, c("Species", "replicate", "Fstart", "Fmax", "age",  add)], cols = var, values_to = "value", names_to = "variable")
+  data_end <- df_trait_t
+  # data_end <- NULL
+  # for (age in as.numeric(names(table(trait_data_full_i$age)))) {
+  #   df_trait_t$age <- age
+  #   data_end <- rbind(data_end, df_trait_t)
+  # } "age",
+  df_trait_t <- pivot_longer(data_end[, c("Species", "replicate", "Fstart", "Fmax", add)], cols = var, values_to = "value", names_to = "variable")
   
   return(df_trait_t)
 }
@@ -2084,7 +2162,7 @@ plot_PCA_ALL <- function (data, DIFF = FALSE, Traits_raw = FALSE, Traits_Ne = FA
 
 #### FOR MORTALITY as TL--------------------------------
 
-source("R/functions/function_data_traits_summary.R")
+source(paste0(here::here(), "/R/functions/function_data_traits_summary.R"))
 
 prepare_only_simutraits_dataset <- function(path_simutraits, survival =F, natural_mort =F, F1=FALSE, FORCE=F){
   data_complete_y = NULL
