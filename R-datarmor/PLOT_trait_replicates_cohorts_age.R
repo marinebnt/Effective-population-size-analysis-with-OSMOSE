@@ -102,11 +102,12 @@ for (sp in SP){
       reshape_data_Ne = reshape_list(reshape_data_Ne)
   
       new_trait_dim <- trait_dim
+      # bind replicate dimensions and remove year or cohort dimension
       for (rep in 0:c(nb_rep-1)){
-        age_Mature = ns1[["ageMature"]]
-         age_Mature = lapply(seq(dim(age_Mature)[3]), function(x) as.data.frame(age_Mature[ , , x]))
+       age_Mature = ns1[["ageMature"]]
+       age_Mature = lapply(seq(dim(age_Mature)[3]), function(x) as.data.frame(age_Mature[ , , x]))
 
-         for (nm in names(reshape_data_Ne[[sp]][["data_Ne"]])){
+       for (nm in names(reshape_data_Ne[[sp]][["data_Ne"]])){
            # should we sum or average the cohorts dimensions ? 
           fct_i = ifelse(nm %in% c("biomassByAge", "schoolNumber", "abundanceMature", "eggNumberByAge", "abundanceByAge", "GonadWeight"), "mean", 
                    ifelse(nm %in% c("sizeMature", "mortalityByAge", "meanSizeByAge", "fecundityByAge", "Mpred", "Mstar", "Mnat", "F", "Z", "Mfor", "Dis", "meanWeightByAge", "enetByAge"), "mean", "total"))
@@ -114,22 +115,38 @@ for (sp in SP){
           new_trait_dim[which(trait_dim == nm)] <- new_nm
           data_t_t <- reshape_data_Ne[[species[1]]][["data_Ne"]][[nm]]
           data_t_t <- data_t_t[,which(colnames(data_t_t) %in% paste0("cohort_", Time1:Time2)),]
-          data_t <- data.frame(matrix(nrow=nrow(data_t_t)))
-          data_t[,"age"] <- as.numeric(rownames(data_t_t[,,rep+1]))
-          if (fct_i %in% c("sum", "mean")) data_t[,"value"] <- apply(data_t_t[,,rep+1], 1, function(x) if(fct_i == "sum") sum(x, na.rm=T) else mean(x, na.rm=T))
-          data_t[,"value"] <- apply(data_t_t[,,rep+1], 1, fct_i)
-          data_t[,"Species"] <- species[1]
-
-          for (sp_j in species[-1]){
-            data_t_t <- reshape_data_Ne[[sp_j]][["data_Ne"]][[nm]]
-            data_t_t <- data_t_t[,which(colnames(data_t_t) %in% paste0("cohort_", Time1:Time2)),]
-            data_tj <- data_t
-            data_tj[,"age"] <- as.numeric(rownames(data_t_t[,,rep+1]))
-            if (fct_i %in% c("sum", "mean")) data_tj[,"value"] <- apply(data_t_t[,,rep+1], 1, function(x) if(fct_i == "sum") sum(x, na.rm=T) else mean(x, na.rm=T))
-            data_tj[,"Species"] <- sp_j
-            data_t <- rbind(data_t, data_tj)
-          }#species
-
+          
+          if (length(trait_dim)>2){ # average between cohorts if too any dimensions
+            data_t <- data.frame(matrix(nrow=nrow(data_t_t)))
+            data_t[,"age"] <- as.numeric(rownames(data_t_t[,,rep+1]))
+            if (fct_i %in% c("sum", "mean")) data_t[,"value"] <- apply(data_t_t[,,rep+1], 1, function(x) if(fct_i == "sum") sum(x, na.rm=T) else mean(x, na.rm=T))
+            data_t[,"value"] <- apply(data_t_t[,,rep+1], 1, fct_i)
+            data_t[,"Species"] <- species[1]
+            for (sp_j in species[-1]){
+              data_t_t <- reshape_data_Ne[[sp_j]][["data_Ne"]][[nm]]
+              data_t_t <- data_t_t[,which(colnames(data_t_t) %in% paste0("cohort_", Time1:Time2)),]
+              data_tj <- data_t
+              data_tj[,"age"] <- as.numeric(rownames(data_t_t[,,rep+1]))
+              if (fct_i %in% c("sum", "mean")) data_tj[,"value"] <- apply(data_t_t[,,rep+1], 1, function(x) if(fct_i == "sum") sum(x, na.rm=T) else mean(x, na.rm=T))
+              data_tj[,"Species"] <- sp_j
+              data_t <- rbind(data_t, data_tj)
+            }#species
+          } else { # keep cohort dimension if few dimensions
+            data_t <- data.frame(matrix(nrow=nrow(data_t_t)))
+            data_t[,"age"] <- as.numeric(rownames(data_t_t[,,rep+1]))
+            pivot_longer(data_t_t[,,rep+1], cols = colnames(data_t_t[,,rep+1]), names_to = "cohort", values_to = "value")
+            data_t[,"Species"] <- species[1]
+            for (sp_j in species[-1]){
+              data_t_t <- reshape_data_Ne[[sp_j]][["data_Ne"]][[nm]]
+              data_t_t <- data_t_t[,which(colnames(data_t_t) %in% paste0("cohort_", Time1:Time2)),]
+              data_tj <- data_t
+              data_tj[,"age"] <- as.numeric(rownames(data_t_t[,,rep+1]))
+              pivot_longer(data_t_t[,,rep+1], cols = colnames(data_t_t[,,rep+1]), names_to = "cohort", values_to = "value")
+              data_tj[,"Species"] <- sp_j
+              data_t <- rbind(data_t, data_tj)
+            }#species
+          }
+          
           data_t$TRAIT <- new_nm
           if (nm == names(reshape_data_Ne[[species[1]]][["data_Ne"]])[1]){
             data_rep <- data_t
@@ -137,11 +154,10 @@ for (sp in SP){
             data_rep <- rbind(data_rep, data_t)
           }
         }#trait
-
+  
         data_t <- data_rep[,-1]
         data_t$replicate <- rep
         data_t$var_F_for_sp <- sp
-        
         
         #Replicate : saving one replicate at a time instead of all of them together
         # if (rep == 0){
