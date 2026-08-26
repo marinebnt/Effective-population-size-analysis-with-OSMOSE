@@ -135,14 +135,14 @@ for (sp in SP){
             dtt <- as.data.frame(data_t_t[,,rep+1])
             dtt[,"age"] <- as.numeric(rownames(data_t_t[,,rep+1]))
             head(dtt)
-            data_t <- pivot_longer(dtt, cols = colnames(dtt), names_to = "cohort", values_to = "value")
+            data_t <- pivot_longer(dtt, cols = -c("age"), names_to = "cohort", values_to = "value")
             data_t[,"Species"] <- species[1]
             for (sp_j in species[-1]){
               data_t_t <- reshape_data_Ne[[sp_j]][["data_Ne"]][[nm]]
               data_t_t <- data_t_t[,which(colnames(data_t_t) %in% paste0("cohort_", Time1:Time2)),]
               dtt <- as.data.frame(data_t_t[,,rep+1])
               dtt[,"age"] <- as.numeric(rownames(data_t_t[,,rep+1]))
-              data_tj <- pivot_longer(dtt, cols = colnames(dtt), names_to = "cohort", values_to = "value")
+              data_tj <- pivot_longer(dtt, cols = -c("age"), names_to = "cohort", values_to = "value")
               data_tj[,"Species"] <- sp_j
               data_t <- rbind(data_t, data_tj)
             }#species
@@ -156,7 +156,7 @@ for (sp in SP){
           }
         }#trait
   
-        data_t <- data_rep[,-1]
+        if (!("cohort" %in% colnames(data_rep)) data_t <- data_rep[,-1]
         data_t$replicate <- rep
         data_t$var_F_for_sp <- sp
         
