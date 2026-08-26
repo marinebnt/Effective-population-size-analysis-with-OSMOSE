@@ -134,14 +134,17 @@ for (sp in SP){
           } else { # keep cohort dimension if few dimensions
             data_t <- data.frame(matrix(nrow=nrow(data_t_t)))
             data_t[,"age"] <- as.numeric(rownames(data_t_t[,,rep+1]))
-            pivot_longer(data_t_t[,,rep+1], cols = colnames(data_t_t[,,rep+1]), names_to = "cohort", values_to = "value")
+            dtt <- as.data.frame(data_t_t[,,rep+1])
+            cat(head(dtt))
+            pivot_longer(dtt, cols = colnames(dtt), names_to = "cohort", values_to = "value")
             data_t[,"Species"] <- species[1]
             for (sp_j in species[-1]){
               data_t_t <- reshape_data_Ne[[sp_j]][["data_Ne"]][[nm]]
               data_t_t <- data_t_t[,which(colnames(data_t_t) %in% paste0("cohort_", Time1:Time2)),]
               data_tj <- data_t
               data_tj[,"age"] <- as.numeric(rownames(data_t_t[,,rep+1]))
-              pivot_longer(data_t_t[,,rep+1], cols = colnames(data_t_t[,,rep+1]), names_to = "cohort", values_to = "value")
+              dtt <- as.data.frame(data_t_t[,,rep+1])
+              pivot_longer(dtt, cols = colnames(dtt), names_to = "cohort", values_to = "value")
               data_tj[,"Species"] <- sp_j
               data_t <- rbind(data_t, data_tj)
             }#species
