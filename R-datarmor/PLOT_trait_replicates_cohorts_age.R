@@ -12,6 +12,7 @@ if (grepl(simu_name, pattern= "Chap2")) {
 repo        = "Simu_LONG"
 multip_name = "y"
 multipliers = c(1,0.5,0.75,1.25,1.5)
+multipliers = c(1)
 
 trait_dim= c("GonadWeight", "meanWeightByAge", "abundanceMature", 
      "meanSizeByAge", "fecundityByAge",
@@ -69,7 +70,7 @@ for (sp in SP){
   
   for (Fmax in multipliers){
     Fmax_dir <- sp_dir[grep(pattern = paste0("Fmax", Fmax, "_"), sp_dir)]
-    for (Fstart in 1){ #multipliers){
+    for (Fstart in multipliers){
       dir <- Fmax_dir[grep(pattern = paste0("Fstart", Fstart, "_sp", sp_i, term), Fmax_dir)]
      
       cat(dir)
@@ -96,11 +97,10 @@ for (sp in SP){
       data_Ne_raw[["data_Ne"]] <- estimate_for_Ne(outputDir_Simu, outputDir_Ne, trait_dim, species, nb_rep, OUTPUT_data=ns1)
       data_Ne_raw[["data_Ne"]][[which(names(data_Ne_raw[["data_Ne"]]) == "cohort_time_step_corresponding")]] <- NULL
   
-  
       reshape_data_Ne = lapply(data_Ne_raw, FUN = myf2)
       reshape_data_Ne = lapply(reshape_data_Ne, FUN = reshape_list) # have the name of the species before the trait name in the list order
       reshape_data_Ne = reshape_list(reshape_data_Ne)
-  
+
       new_trait_dim <- trait_dim
       # bind replicate dimensions and remove year or cohort dimension
       for (rep in 0:c(nb_rep-1)){
@@ -156,7 +156,10 @@ for (sp in SP){
           }
         }#trait
   
-        if (!("cohort" %in% colnames(data_rep)) data_t <- data_rep[,-1]
+        if (!("cohort" %in% colnames(data_rep))) {
+          data_t <- data_rep[,-1]
+          } else   data_t <- data_rep
+       
         data_t$replicate <- rep
         data_t$var_F_for_sp <- sp
         
