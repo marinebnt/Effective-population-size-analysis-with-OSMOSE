@@ -3,6 +3,13 @@
 # 11/06/25
 # based on Waples et al 2025
 
+# WARNING : all variables estimated based on haploid life-histories. 
+#        The cases haploid and diploid are described in Waples et al., 2011. 
+#        We have adapted the equation of the haploid populations to the diploid case, 
+#        while employing the parameters estimated for the haploid case.
+#        Full description is give :  DATA/Haploid_Ne_for_Diploid.pdf
+
+
 
 estimate_Ne <- function(outputDir_Ne, data_Ne_shape, species, nb_rep, input_dir, OUTPUT_data, removing_senescence=F){
 
@@ -263,7 +270,6 @@ estimate_Ne <- function(outputDir_Ne, data_Ne_shape, species, nb_rep, input_dir,
         rownames(data_Ne_shape2[[sp]][["k_point"]]) <- colnames(dead)
       }
       data_Ne_shape2[[sp]][["k_point"]][, rep] <- k_point_df[, paste0("rep_", rep)]
-      # rownames(data_Ne_shape2[["k_point"]][[sp]][[paste0("rep_", rep)]]) <- rownames(dead)
 
       # Mean square deviation lifetime repro success overall 
       var_x    <- data_Ne_shape2[[sp]][["Vx"]][[paste0("rep_", rep)]]
@@ -318,36 +324,31 @@ estimate_Ne <- function(outputDir_Ne, data_Ne_shape, species, nb_rep, input_dir,
       years_i   <- nrow(k_point)
       ncohort   <- ncol(k_point)
 
-      # Ne <- (4*pop_size*longevity)/(Vk_point+2) # diploid, hermaphrodites
-      Ne_N_alpha        <- (4*pop_size*longevity)/(2*Vk_point + 2 + (2*colSums(SSDgx))/pop_size) # diploid and 2 sexes
-      # Ne_N_1     <- (4*Numerator_N_1*longevity)/(2*Vk_point + 2 + (2*colSums(SSDgx))/pop_size) # diploid and 2 sexes
+      # Ne <- (4*pop_size*longevity)/(Vk_point+2) # diploid, haploid
+      Ne_N_alpha        <- (4*pop_size*longevity)/(2*Vk_point + 2 + (2*colSums(SSDgx))/pop_size) # diploid and 2 sexes (diploid)
+      # here : all variables estimated based on haploid life-histories. 
+      #        The cases haploid and diploid are described in Waples et al., 2011. 
+      #        We have adapted the equation of the haploid populations to the diploid case, 
+      #        while employing the parameters estimated for the haploid case.
+      #        Full description is give :  DATA/Haploid_Ne_for_Diploid.pdf
       Ne_N_alpha[which(Vk_point == 0, arr.ind = T)] <- 0  
-      # Ne_N_1[which(Vk_point == 0, arr.ind = T)] <- 0
       Ne_N_alpha_df[, paste0("rep_", rep)] <- t(Ne_N_alpha)
-      # Ne_N_1_df[, paste0("rep_", rep)] <- t(Ne_N_1)
     }# rep
 
     data_Ne_shape2[[sp]][["DeadSum"]] <- (sapply(1:nb_rep, function(x) colSums(data_Ne_shape2[[sp]][["Dead"]][[x]])))
     data_Ne_shape2[[sp]][["generation_length"]] <- generation_length
     data_Ne_shape2[[sp]][["k_point"]] <- k_point_df
     data_Ne_shape2[[sp]][["Ne_N_alpha"]] <- Ne_N_alpha_df
-    # data_Ne_shape2[[sp]][["Ne_N_1"]] <- Ne_N_1_df
     data_Ne_shape2[[sp]][["Vk_point"]] <- Vk_point_df
 
     colnames(data_Ne_shape2[[sp]][["DeadSum"]]) <- colnames(Vk_point_df)
     for (dims in names(data_Ne_shape2[[sp]])){
-      # if (is.matrix(data_Ne_shape2[[sp]][[dims]])) {
-      #   data_Ne_shape2[[sp]][[dims]] <- reshape_matrix_to_expand(data_Ne_shape2[[sp]][[dims]], 
-      #                                                            as.variable = F, varName = dims)
-      #   next
-      # }
       if (is.list(data_Ne_shape2[[sp]][[dims]]) && length(data_Ne_shape2[[sp]][[dims]])==1){
         data_Ne_shape2[[sp]][[dims]] <- reshape_data(data_Ne_shape2[[sp]][[dims]], as.variable = T, varName = dims)
       }
     }
   }# sp
   data_Ne <- data_Ne_shape2
-  #save(data_Ne, file=paste0(outputDir_Ne, "/Ne.RData"))
   return(data_Ne)
 }
 
