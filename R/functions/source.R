@@ -7,17 +7,17 @@ required_packages <- c("osmose", "stringr", "reshape2", "cowplot", "patchwork",
 invisible(lapply(required_packages, library, character.only=T))
 
 
-source(paste0("R/functions/functions_for_Ne.R"))
-source(file.path("R/functions/functions_Ne.R"))
+source(paste0(here::here(), "/R/functions/functions_for_Ne.R"))
+source(file.path(here::here(), "R/functions/functions_Ne.R"))
 #source(file.path("osmose-ns-v4.4.1_clim/R/functions/save_plots_ne.R"))
-source(file.path("R/functions/functions_temporalNe.R"))
+source(file.path(here::here(), "R/functions/functions_temporalNe.R"))
 #source(file.path("osmose-ns-v4.4.1_clim/R/functions/save_plots_ne_tempo.R"))
-source(file.path("R/functions/Data_abund_mat_by_age.R"))
-source(file.path("R/functions/function_INIT1_launch_simu_if_missing.R"))
-source(file.path("R/functions/function_INIT2_produceNe.R"))
-source(file.path("R/functions/ways_to_estimate_Nc.R"))
-source(file.path("R/functions/functions_Nb2.R"))
-source(file = "R/functions/auxiliary_for_lists.R")
+source(file.path(here::here(), "R/functions/Data_abund_mat_by_age.R"))
+source(file.path(here::here(), "R/functions/function_INIT1_launch_simu_if_missing.R"))
+source(file.path(here::here(), "R/functions/function_INIT2_produceNe.R"))
+source(file.path(here::here(), "R/functions/ways_to_estimate_Nc.R"))
+source(file.path(here::here(), "R/functions/functions_Nb2.R"))
+source(file = paste0(here::here(), "/R/functions/auxiliary_for_lists.R"))
 
 
 # 0. OSMOSE configuration -------------------------------------------------
@@ -27,7 +27,7 @@ javaPath   = "C:/Users/mbeneat/Documents/osmose/osmose-private/inst/java"
 jarFile    = file.path(javaPath, sprintf("osmose-%s-jar-with-dependencies.jar", version))
 
 # 1. Model Configuration --------------------------------------------------
-configFile = file.path(main) # path to main configuration file
+configFile = file.path(here::here(), main) # path to main configuration file
 conf = read_osmose(input=configFile)
 seeding_y <- get_par(conf, "population.seeding.year.max")
 

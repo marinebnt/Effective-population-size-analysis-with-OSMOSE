@@ -41,7 +41,7 @@ data_traits_summary <- function(base_path, pathout) {
   subdirs <- list.dirs(file.path(here::here(), base_path, "RDATA"), recursive = FALSE, full.names = TRUE)
   
   if (length(subdirs) == 0) {
-    warning(paste("No subdirectories found in:", rdata_path))
+    warning(paste("No subdirectories found in:", file.path(here::here(), base_path, "RDATA")))
     return(NULL)
   }
   
@@ -230,7 +230,7 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, pathdata, pathout, Time1, Ti
             
             # harmonic mean
             data_Ne_Nalpha = NULL
-            vector_harmonic_mean = c("Ne_N_alpha", "Numerator_N_alpha", "NT")
+            vector_harmonic_mean = c("Ne_N_alpha", "Numerator_N_alpha", "NT")#, "generation_length", "Vk_point")
             vector_harmonic_mean <- c(vector_harmonic_mean, improve_vriable_names(vector_harmonic_mean))
             if (any(f_i_sp_d$variable %in% vector_harmonic_mean & "cohort" %in% colnames(f_i_sp_d))){
               data_Ne_Nalpha <- f_i_sp_d[which(f_i_sp_d$variable %in% vector_harmonic_mean), ]
@@ -276,7 +276,7 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, pathdata, pathout, Time1, Ti
             # mean of the cohorts : arithmetic or harmonic
             # harmonic mean
             data_Ne_Nalpha = NULL
-            vector_harmonic_mean = c("Ne_N_alpha", "Numerator_N_alpha", "NT")
+            vector_harmonic_mean = c("Ne_N_alpha", "Numerator_N_alpha", "NT")#, "generation_length", "Vk_point")
             vector_harmonic_mean <- c(vector_harmonic_mean, improve_vriable_names(vector_harmonic_mean))
             if (any(f_i_sp_d$variable %in% vector_harmonic_mean & "cohort" %in% colnames(f_i_sp_d))){
               data_Ne_Nalpha <- f_i_sp_d [which(f_i_sp_d$variable %in% vector_harmonic_mean), ]
@@ -342,7 +342,7 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, pathdata, pathout, Time1, Ti
 
 # RAW TRAITS, dimensions :  age, replicate, Fish_press, Species, TRAIT
 
-load_trait_df <- function(base_path, pathout, FORCE=F){
+load_trait_df <- function(base_path, pathout, FORCE=F, removeage0=T){
    # load dataset
    data_complete_sp = NULL
    data_complete_c = NULL
@@ -360,14 +360,16 @@ load_trait_df <- function(base_path, pathout, FORCE=F){
    }
    
    # removing age 0
-   data_complete_c <- data_complete_c[-which(data_complete_c$age == 0), ]
+   if (removeage0 == T) data_complete_c <- data_complete_c[-which(data_complete_c$age == 0), ]
    # correction
-   data_complete_c[grep(data_complete_c$TRAIT, pattern="fec"), "TRAIT"] <- "mean_of_eggNumber_per_age"
+   if (any(grepl(data_complete_c$TRAIT, pattern="fec"))) data_complete_c[grep(data_complete_c$TRAIT, pattern="fec"), "TRAIT"] <- "mean_of_eggNumber_per_age"
    
    # adding natural mortality dimension
-   data_complete_c[which((data_complete_c$TRAIT) == "mean_of_Mnat_per_age"), "TRAIT"] <- "mean_of_Madd_per_age"
-   data_complete_c <- pivot_wider(data = data_complete_c, names_from = "TRAIT", values_from = "value")
-   data_complete_c$mean_of_Mnat_per_age <- data_complete_c$mean_of_Madd_per_age + data_complete_c$mean_of_Mpred_per_age + data_complete_c$mean_of_Mstar_per_age + data_complete_c$mean_of_Mfor_per_age
+   if (any((data_complete_c$TRAIT) == "mean_of_Mnat_per_age")){
+     data_complete_c[which((data_complete_c$TRAIT) == "mean_of_Mnat_per_age"), "TRAIT"] <- "mean_of_Madd_per_age"
+     data_complete_c <- pivot_wider(data = data_complete_c, names_from = "TRAIT", values_from = "value")
+     data_complete_c$mean_of_Mnat_per_age <- data_complete_c$mean_of_Madd_per_age + data_complete_c$mean_of_Mpred_per_age + data_complete_c$mean_of_Mstar_per_age + data_complete_c$mean_of_Mfor_per_age
+   }
    if("Fish_press" %in% colnames(data_complete_c)) {
      data_complete_c$Fish_press <- stringr::str_replace(data_complete_c$Fish_press, pattern = "_", replacement = " ")
      data_complete_c$Fish_press <- stringr::str_remove(data_complete_c$Fish_press, pattern = "=")
@@ -376,7 +378,10 @@ load_trait_df <- function(base_path, pathout, FORCE=F){
      data_complete_c$Fstart <- as.numeric(unlist(stringr::str_split(data_complete_c$Fish_press, " Fstart"))[seq(2, 2*length(data_complete_c$Fish_press), by=2)])
      data_complete_c <- data_complete_c[,-which(colnames(data_complete_c) == "Fish_press")]
    }
-   data_complete_c <- pivot_longer(data = data_complete_c, names_to = "TRAIT", values_to = "value", cols=-colnames(data_complete_c)[which(colnames(data_complete_c) %in% c("Fstart", "Fmax", "Species", "age", "replicate"))])
+   if (!("TRAIT" %in% colnames(data_complete_c))) 
+     {data_complete_c <- pivot_longer(data = data_complete_c, names_to = "TRAIT", values_to = "value", 
+                                   cols=-colnames(data_complete_c)[which(colnames(data_complete_c) %in% 
+                                                                c("Fstart", "Fmax", "Species", "age", "replicate"))])}
    
    # changing colnames to match expectations
    colnames(data_complete_c)[which(colnames(data_complete_c) == "TRAIT")] <- "variable"
@@ -384,5 +389,88 @@ load_trait_df <- function(base_path, pathout, FORCE=F){
    return(data_complete_c)
 }
 
-         
+# FUNCTIONS TO CLEA DATASETS
+when_variables_missing_age_dim <- function(dataset, add_missing_ages = T){
+  nvarinit <- length(table(dataset$variable))
+  dataset_age <- (as.numeric(as.matrix(dataset[which(dataset$variable %in% c("eggNumber", "mean_of_eggNumberByAge_per_age")), "age"])))
+  min_age <- min(dataset_age)
+  if (any(as.numeric(as.matrix(dataset$age))<min_age) || any(is.na(as.matrix(dataset$age)))) {
+    if(any(is.na(as.matrix(dataset$age))) & add_missing_ages == F) {
+      cat("\nRemplacing NA in age by min_age only")
+      data_na <- dataset[which(is.na(as.matrix(dataset$age))), ]
+      data_na$age <- min_age
+      data_not_na <- dataset[-which(is.na(as.matrix(dataset$age))), ]
+      dataset <- rbind(data_na, data_not_na)
+    }
+    if(any(is.na(as.matrix(dataset$age))) & add_missing_ages == T) {
+      cat("\nRemplacing NA in age by a looped vector with all the ages from maturation to mortality")
+      data_rep <- dataset[which(is.na(as.matrix(dataset$age))), ]
+      data_not_rep <- dataset[-which(is.na(as.matrix(dataset$age))), ]
+      dataset_repet_i = NULL
+      for (x in min_age:max(as.numeric(as.matrix(dataset$age)), na.rm=T)) {
+        tempo <- data_rep
+        tempo$age <- x
+        dataset_repet_i <- rbind(dataset_repet_i, tempo)
+      }
+      dataset <- rbind(dataset_repet_i, data_not_rep)
+    }
+    if(any(as.numeric(as.matrix(dataset$age))<min_age)) {
+      cat("\nCorrecting error in the dimension of the input dataset : certain outputs have the age < maturation age\n")
+      data_wrong_range_age  <- dataset[which(as.numeric(as.matrix(dataset$age))<min_age), "variable"]
+      data_good_range_age   <- dataset[-which(dataset$variable %in% as.matrix(unique(data_wrong_range_age))), ]
+      data_good_range_age_i <- as.matrix(data_good_range_age$variable)[1]
+      data_good_range_age_i <- dataset[which(dataset$variable == data_good_range_age_i), ]
+      ages_i_ok <- as.numeric(as.matrix(data_good_range_age_i$age))
+      for(vi in names(table(data_wrong_range_age))){
+        data_wrong_range_age_i <- dataset[which(dataset$variable == vi), ]
+        ages_i <- as.numeric(as.matrix(data_wrong_range_age_i$age))
+        if ((max(ages_i)-min(ages_i)) == (max(ages_i_ok)-min(ages_i_ok))){
+          data_wrong_range_age_i$age = as.numeric(as.matrix(data_wrong_range_age_i$age))-min(ages_i)+min(ages_i_ok)
+        } else cat("=====> cannot be fixed, normal if add_missing_ages == F <=============")
+        data_good_range_age <- rbind(data_good_range_age, data_wrong_range_age_i)
+      }
+      dataset <- data_good_range_age
+    }
+  }
+  nvarend <- length(table(dataset$variable))
+  if(nvarend!=nvarend) stop("Dimensions have changed: lost variable(s)")
+  return(dataset)
+}
+when_null_or_low_abund <- function(dataset){
+  tab <- table(dataset$variable)
+  var_less_rep <- names(tab)[which(tab<max(tab))]
+  dataset_t <- pivot_wider(dataset, names_from = "variable", values_from = "value")
+  if (any(is.na(as.matrix(dataset_t[,grep(colnames(dataset_t), pattern="abundanceByAge")])))) {
+    dataset_t <- dataset_t[-which(is.na(as.matrix(dataset_t[,grep(colnames(dataset_t), pattern="abundanceByAge")]))),]
+    dataset   <- pivot_longer(dataset_t, cols = -c("age", "replicate", "Fmax", "Fstart", 'Species'), 
+                              names_to = "variable", values_to = "value")
+  }
+  if (!(length(var_less_rep)==0)) {
+    data_t  <- dataset[-which(dataset$variable %in% var_less_rep), ]
+  } else {
+    data_t <- dataset
+  }
+  dataset <- rbind(data_t, na.omit(dataset[which(dataset$variable %in% var_less_rep), ]))
+  if (any(as.matrix(dataset_t[,grep(colnames(dataset_t), pattern="abundanceByAge")])<100, na.rm=T)){
+    dataset_t[which(as.matrix(dataset_t[,grep(colnames(dataset_t), pattern="abundanceByAge")])<100), -which(colnames(dataset_t) %in%
+                                                                                                              c("age", "replicate", "Fmax", "Fstart", 'Species'))] <- NA
+    dataset <- pivot_longer(dataset_t, cols = -c("age", "replicate", "Fmax", "Fstart", 'Species'), names_to = "variable", values_to = "value")
+  }
+  if (!(length(var_less_rep)==0)) {
+    data_t  <- dataset[-which(dataset$variable %in% var_less_rep), ]
+  } else {
+    data_t <- dataset
+  }
+  dataset <- rbind(data_t, na.omit(dataset[which(dataset$variable %in% var_less_rep), ]))
+  return(dataset)
+}
+what_ages_have_null_dead_nb <- function(dataset){
+  # remove ages that are not included
+  dataset$age <- as.numeric(dataset$age)
+  ages_to_remove <- table(dataset[which(dataset$variable == "Dead" & dataset$value ==0),"age"])
+  if (dim(ages_to_remove)>0) ages_to_remove <- ages_to_remove[which(ages_to_remove == max(ages_to_remove))]
+  if (any(dataset$age %in% as.numeric(names(ages_to_remove)))) dataset <- dataset[-which(dataset$age %in% as.numeric(names(ages_to_remove))), ]
+  if (any(which(is.na(dataset$age)))) dataset$age[which(is.na(dataset$age))] <- min_age
+  return(dataset)
+}
          

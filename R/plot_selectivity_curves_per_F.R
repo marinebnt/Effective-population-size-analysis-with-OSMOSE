@@ -2,12 +2,11 @@ library(ggplot2)
 library(osmose)
 source("R/functions/source.R")
 
-path <- "../osmose-ns/osmose-ns-v4.4.1_clim/new_config"
-path_init <- '../osmose-ns/osmose-ns-v4.4.1_clim/output/PLOTS/FINAL_Ne_Htz_mature_short'
-infiles <- list.files(path, pattern = ".csv")
+path <- "new_config_Fmax_Fstart"
+path_init <- 'output/DATASETS/Chap2/FINAL_Ne_Htz_mature/INIT'
+nfiles <- list.files(path, pattern = ".csv")
 inifiles <- list.files(path_init, pattern = ".RData", recursive = TRUE, full.names = TRUE)
 inifiles <- inifiles[grep(pattern = "INIT2.RData", inifiles)]
-head(nfiles)
 multip <- c(1, 1.25, 1.5, 0.5, 0.75)
 ideal_order_factor <- paste0("Fmax=", rep(c(0.5,0.75,1,1.25,1.5), 5),
                                "_Fstart=", c(rep(0.5, 5),rep(0.75, 5),rep(1, 5),rep(1.25, 5),rep(1.5, 5)))
@@ -29,7 +28,7 @@ for (species in sp_vec){
   id_sp <- grep(pattern = species, sp_vec)-1
   id_sp_files <- grep(pattern = paste0("sp", id_sp, ".csv"), nfiles)
   max_l <- as.numeric(get_par(conf, paste0("linf.sp", id_sp))[1])
-  for (fmax in multip){
+  for (fmax in 1){
     for (fstart in 1){ #multip
 
       # find the right F pressure to plot 
@@ -86,14 +85,18 @@ for (species in sp_vec){
   dataset_plot$Fmax_Fstart        <- factor(as.factor(dataset_plot$Fmax_Fstart), levels = ideal_order_factor) 
   dataset_plot$Fmax <- unlist(stringr::str_split(dataset_plot$Fmax_Fstart, pattern = "_Fstart"))[seq(1,(2*length(dataset_plot$Fmax_Fstart)), by=2)]
  #produce plots
+  colnames(dataset_plot)[which( colnames(dataset_plot) == "Fmax")] <- "\u03B8F"
+  dataset_plot[, "θF"] <- stringr::str_replace(dataset_plot$θF, pattern = "Fmax", replacement = "θF")
   plot_sp[[species]] <- ggplot(dataset_plot, aes(x=length, y=F_sc))+ 
-        geom_line()+
-        theme_minimal()+
-        theme(text = element_text(size = 17))+
-        facet_wrap(~ Fmax, ncol=5, nrow=1)+
-        labs(title=paste0("Fishing selectivity curves for ", species, 
-        "\nMean generation length by cohort: ", round(gene_l_sp_coho[species], 2))) #,        "\nMean generation length by year: ", round(gene_l_sp_year[species], 2)
-
+        geom_line(lwd=1.2, col="blue3")+
+        theme_test()+
+        theme(text = element_text(size = 13),
+          plot.title = element_text(hjust = 0.5),
+          plot.subtitle = element_text(hjust = 0.5))+
+        ylab("")+
+        # facet_wrap(~ Fmax, ncol=5, nrow=1)+
+        labs(title=species)+ #,        "\nMean generation length by year: ", round(gene_l_sp_year[species], 2)
+        theme(legend.title = element_blank())
   data_surv_curve[[species]] <- dataset_plot
   
 }# species
@@ -103,11 +106,18 @@ pathout <- paste0("output/PLOTS/selectivity_curves_per_Fmax")
 save(data_surv_curve, file=paste0(pathout, "dataset_surv-curve.RData"))
 
 if(!dir.exists(pathout)) {dir.create(pathout, recursive = T)}
-for (species in sp_vec){
-  png(file = paste0(pathout, "/plot_Fpressure_",species, ".png"), width = 1500, height = 350)
-  par(mfrow=c(1,1))
-  print(plot_sp[[species]])
-  dev.off()
-}
+# for (species in sp_vec){
+#   png(file = paste0(pathout, "/plot_Fpressure_",species, ".png"), width = 1500, height = 350)
+#   par(mfrow=c(1,1))
+#   print(plot_sp[[species]])
+#   dev.off()
+# }
+library(grDevices)
+par(mfrow=c(3,2))
+windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+cairo_pdf(file = paste0(pathout, "/plot_Fpressure_Fmax1",species, ".pdf"),
+          width = 14, height =15, onefile=T)
+ggarrange(plotlist=plot_sp, ncol=3, nrow=5)
+dev.off()
 
   
