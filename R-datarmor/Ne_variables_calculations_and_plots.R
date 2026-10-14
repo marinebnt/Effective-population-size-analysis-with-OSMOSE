@@ -14,8 +14,8 @@ Ne_variables_calculations_and_plots <- function(SP){
   
   
   path_in <- c("output/DATASETS/old")
-  path_in <- c("C:/Users/mbeneat/Documents/ZAutres/simu_test")
-  path_in <- c("/home1/datawork/mbeneat/SIMU_Ne_on_NT_with_F_FIN")
+  path_in <- c("C:/Users/name_author/Documents/ZAutres/simu_test")
+  path_in <- c("/home1/datawork/name_author/SIMU_Ne_on_NT_with_F_FIN")
   list_d <- list.dirs(path = path_in, recursive = F, full.names = T)[1]
   # for the test : has to be erased when real launch
   # nb_sp = 7
@@ -29,7 +29,7 @@ Ne_variables_calculations_and_plots <- function(SP){
   # ncohort = years
   
   pathout <- paste0(configDir, "/output/PLOTS/All_clean_genetic_drift_indicators")
-  pathout <- paste0("/home1/scratch/mbeneat/output/PLOTS/Ne_NT_calculated_variables")
+  pathout <- paste0("/home1/scratch/name_author/output/PLOTS/Ne_NT_calculated_variables")
   
   if (removing_senescence_param)  pathout <- paste0(pathout, "_noSenescence")
 

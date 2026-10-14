@@ -16,7 +16,7 @@ library(patchwork)
 
 version    = "4.4.1"
 # javaPath = "C:/Users/cleaa/OSMOSE/osmose-private/inst/java"
-javaPath   = "C:/Users/mbeneat/Documents/osmose/osmose-private/inst/java"
+javaPath   = "C:/Users/name_author/Documents/osmose/osmose-private/inst/java"
 jarFile    = file.path(javaPath, sprintf("osmose-%s-jar-with-dependencies.jar", version))
 # jarFile    = file.path("calibration_med05_test/.osmose.jar")
 

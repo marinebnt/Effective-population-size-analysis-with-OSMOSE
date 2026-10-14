@@ -43,7 +43,7 @@ list_d <- list.dirs(path = path_in, recursive = F, full.names = T)
 # nage = years
 
 pathout <- paste0("output/PLOTS/Other_variables")
-pathout <- paste0("/home1/scratch/mbeneat/output/SIMU/", simu_name, "/Other_variables")
+pathout <- paste0("/home1/scratch/name_author/output/SIMU/", simu_name, "/Other_variables")
 if (!dir.exists(pathout)) dir.create(pathout, recursive=T)
 
 F_vec <- list()
