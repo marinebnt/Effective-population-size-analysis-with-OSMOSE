@@ -11,6 +11,7 @@ library(ggrepel)
 library(ggforce)
 library(ggnewscale)
 library(patchwork)
+library(ggbreak) 
 
 # functions and environment
 main = "New_gpu_conf.R" # config file
@@ -55,12 +56,16 @@ pathout=pathoutputRDATA, Time2, Time2)
 ## loading the dataset of traits averaged over cohorts Time1 to Time2, and reorganised to remove age=0, add reassign natural mortality as add mortality, and estimate natural mortality
 data_variables <- load_trait_df(base_path = base_path, pathout=pathoutputRDATA, FORCE)
 
-
+CLEAN = T
 #### DATASETS clean ------------------------
 # CLEAN DATASET OF TRAITS VARIABLES
 data_variables <- when_variables_missing_age_dim(data_variables)
-data_variables <- when_null_or_low_abund(dataset=data_variables)
-data_variables <- data_variables[which(data_variables$Fstart == 1),]
+data_variables <- what_ages_have_null_dead_nb(data_variables)
+if (CLEAN){
+  data_variables <- when_null_or_low_abund(dataset=data_variables)
+  data_variables <- data_variables[which(data_variables$Fstart == 1),]
+}
+
 
 # CLEAN DATASET OF TRAITS PARAMETERS
 data_parameters <- NULL
@@ -71,14 +76,17 @@ for (sp in species){
   ## load and filter data
   load(file=paste0(pathoutputRDATA, "/Complete_INIT2", sp, ".RData"))
   data_t = complete$complete_with_age
+  
   min_age[sp] <- min(as.numeric(as.matrix(data_t[which(data_t$variable=="survivorship_curve"), "age"])), na.rm=T)
   rm(complete)
   data_t$age <- as.numeric(data_t$age)
   data_t <- when_variables_missing_age_dim(dataset = data_t)
-  data_t <- what_ages_have_null_dead_nb(data_t)
-  data_t <- when_null_or_low_abund(data_t)
+  if (CLEAN){
+    data_t <- when_null_or_low_abund(data_t)
+  }
   data_t$Fmax <- as.factor(data_t$Fmax) 
   data_t$min_age <- min_age[[sp]]
+  data_t = what_ages_have_null_dead_nb(data_t)
   
   ## dataset
   data <-  data_t %>% filter(Species == sp, Fstart == 1)
@@ -250,6 +258,7 @@ for (sp in species){
 
 
 #### PLOT 1- NE/N VS FMAX + Biomass VS FMAX ------------------
+if (CLEAN){
 Ne_plot_list = list()
 traits_to_plot <- list(c("generation_length", "Vk_point", "T/Vk."),
                        c("generation_length", "Vk_point+2"),
@@ -258,11 +267,6 @@ traits_to_plot <- list(c("generation_length", "Vk_point", "T/Vk."),
                        c("colSumsurvivorship_curve", "T/Vk."),
                        c("colSumSSDgx", "Numerator_N_alpha", "colSumSSDgx\nDivNumerator_N_alpha"), 
                        c("Numerator_N_alpha", "colSumDeltasquare", "colSumSSDgx")
-                       # ,
-                      # c("Ne_N_alpha", "NT", "Ne_N_alpha\nDivNT", "Numerator_N_alpha"),
-                       # c("Ne_N_alpha", "Numerator_N_alpha", "NT")
-                       # ,
-                       # c("k_point")
                        )
 
 # select data_parameters
@@ -324,42 +328,42 @@ data_plot_1 <- rbind(data_plot_1, df_trait_t)
 
 # colSum survivorship curve
 df_trait_t    <- estimatecolSum(trait_data_full_i = data_plot_1, var=paste0("colSumsurvivorship_curve"))
-min_age_mat   <- (data_plot_1[sapply(species, FUN=function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
+min_age_mat   <- (data_plot_1[sapply(species, function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
 df_trait_t    <- full_join(df_trait_t, min_age_mat)
 df_trait_t$age <- df_trait_t$min_age
 data_plot_1   <- rbind(data_plot_1, df_trait_t)
 
 # colSum SSDgx
 df_trait_t    <- estimatecolSum(trait_data_full_i = data_plot_1, var=paste0("colSumSSDgx"))
-min_age_mat   <- (data_plot_1[sapply(species, FUN=function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
+min_age_mat   <- (data_plot_1[sapply(species, function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
 df_trait_t    <- full_join(df_trait_t, min_age_mat)
 df_trait_t$age <- df_trait_t$min_age
 data_plot_1   <- rbind(data_plot_1, df_trait_t)
 
 # colSum SSDgx/Napha
 df_trait_t    <- estimatecolSum(trait_data_full_i = data_plot_1, var=paste0("colSumSSDgx\nDivNumerator_N_alpha"))
-min_age_mat   <- (data_plot_1[sapply(species, FUN=function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
+min_age_mat   <- (data_plot_1[sapply(species, function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
 df_trait_t    <- full_join(df_trait_t, min_age_mat)
 df_trait_t$age<- df_trait_t$min_age
 data_plot_1   <- rbind(data_plot_1, df_trait_t)
 
 # colSum Dead
 df_trait_t    <- estimatecolSum(trait_data_full_i = data_plot_1, var=paste0("colSumDead"))
-min_age_mat   <- (data_plot_1[sapply(species, FUN=function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
+min_age_mat   <- (data_plot_1[sapply(species, function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
 df_trait_t    <- full_join(df_trait_t, min_age_mat)
 df_trait_t$age<- df_trait_t$min_age
 data_plot_1   <- rbind(data_plot_1, df_trait_t)
 
 # colSum Mortality rate
 df_trait_t    <- estimatecolSum(trait_data_full_i = data_plot_1, var=paste0("colSumMtot"))
-min_age_mat   <- (data_plot_1[sapply(species, FUN=function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
+min_age_mat   <- (data_plot_1[sapply(species, function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
 df_trait_t    <- full_join(df_trait_t, min_age_mat)
 df_trait_t$age<- df_trait_t$min_age
 data_plot_1   <- rbind(data_plot_1, df_trait_t)
 
 # colSum Deltasquare
 df_trait_t    <- estimatecolSum(trait_data_full_i = data_plot_1, var=paste0("colSumDeltasquare"))
-min_age_mat   <- (data_plot_1[sapply(species, FUN=function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
+min_age_mat   <- (data_plot_1[sapply(species, function(x) {which(data_plot_1$Species==x)[1]}), c("min_age", "Species")])
 df_trait_t    <- full_join(df_trait_t, min_age_mat)
 df_trait_t$age<- df_trait_t$min_age
 data_plot_1   <- rbind(data_plot_1, df_trait_t)
@@ -372,6 +376,8 @@ if (nrow(data_plot_1)<1) next
 d_residuals <- pivot_wider(data_plot_1, values_from = "value", names_from = "variable")
 d_residuals$`log(Ne_N_alpha\nDivNT)`-log(4)-d_residuals$`Ne_N_alpha\nDivNT`-d_residuals$`log(T/(Vk.+2))`
 
+
+slopes_list <- list()
 #loop to plot relative and absolute data
 for (relative_to_ref in c(TRUE)){
 
@@ -422,16 +428,33 @@ for (relative_to_ref in c(TRUE)){
     if (any(grepl(traits_selected, pattern = "SSD") | grepl(traits_selected, pattern = "Delta"))) sp_main_imp_i <- stringr::str_replace(sp_main_imp_i, pattern = "Horse mackerel", "Grey gurnard")
     
     df_trait_t$Species = factor(levels = improve_sp_names(species[order(species)]), df_trait_t$Species)
-    result <- plot_trait_vs_fmax(df_trait_sp = df_trait_t, trait_name = t, age_dim = F,spec=species_imp[order(species_imp)],
+    result <- plot_trait_vs_fmax(df_trait_sp = df_trait_t, trait_name = t, age_dim = F, spec=species_imp[order(species_imp)],
                                  Time1, Time2, relative_to_ref = relative_to_ref, proportional=proportional,
-                                 position_legend = "right", facet = T, subtitle=F, legend_justif="right", 
-                                 nrow=5, ncol=3, per_species_scale = TRUE, scale_z = scale_z_i)
+                                 position_legend = "right", per_species_scale = TRUE, facet = T, subtitle=F, legend_justif="right", 
+                                 nrow=5, ncol=3, scale_z = scale_z_i)
+    slopes_list[[paste(traits_selected, collapse = "")]] <- result$data %>%
+      dplyr::filter(!is.na(mean)) %>%                        # Fmax effondrés déjà en NA -> exclus
+      dplyr::group_by(Species, variable) %>%
+      dplyr::filter(dplyr::n() >= 3) %>%                     # pente sur au moins 3 valeurs de thetaF
+      dplyr::summarise(
+        slope    = coef(lm(mean ~ Fmax))[2],
+        slope_se = summary(lm(mean ~ Fmax))$coefficients[2, 2],
+        p_value  = summary(lm(mean ~ Fmax))$coefficients[2, 4],
+        n_F      = dplyr::n(),
+        n_F_ci_excl0 = sum(Fmax != 1 & abs(mean) > IC_95, na.rm = TRUE),   # nb de thetaF dont l'IC exclut 0
+        n_F_tested   = sum(Fmax != 1),
+        .groups  = "drop") %>%
+      dplyr::mutate(response = ifelse(n_F_ci_excl0 >= 2, "responsive", "constant"))
+
+    
+    
+    
     df_trait_t2 <- df_trait_t[which(df_trait_t$Species %in% sp_main_imp_i), ]
     df_trait_t2$Species = factor(levels = sp_main_imp_i, df_trait_t2$Species)
     result2 <- plot_trait_vs_fmax(df_trait_sp = df_trait_t2, trait_name = t, age_dim = F, spec=sp_main_imp_i,
                                  Time1, Time2, relative_to_ref = relative_to_ref, proportional=proportional,
                                  position_legend = "right", facet = T, subtitle=F, 
-                                 nrow=2, ncol=2, per_species_scale = TRUE, scale_z = scale_z_i)
+                                 nrow=2, ncol=2, per_species_scale = TRUE, scale_z = scale_z_i, delta_method = T)
     
     # save in a list
       Ne_plot_list[[paste0(as.character(relative_to_ref), as.character(proportional))]][[paste(species, collapse="")]][[paste(traits_selected, collapse="")]] <- result$plot
@@ -570,11 +593,95 @@ for (relative_to_ref in c("proportional")){
   dev.off()
 }
 
+# from the plot loop, we have extracted the slopes, and now plot it
+slopes_all <- dplyr::bind_rows(slopes_list) %>%
+  dplyr::distinct(Species, variable, .keep_all = TRUE) %>%   # une variable peut apparaître dans plusieurs jeux de traits
+  dplyr::group_by(variable) %>%
+  # couleur : pente divisée par le 80e percentile de |pente| de la variable, bornée à [-1, 1]
+  # (sinon les espèces qui s'effondrent - cabillaud, merlu - écrasent toutes les autres)
+  dplyr::mutate(slope_std = pmax(pmin(slope / quantile(abs(slope), 0.8, na.rm = TRUE), 1), -1)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(signif = cut(p_value, c(-Inf, 0.01, 0.05, 0.1, Inf), c("***", "**", "*", "")))
+write.csv(slopes_all, file = paste0(PATHOUT, "/slopes_relative_response_vs_thetaF1.csv"), row.names = FALSE)
 
+
+slopes_order_chosen_var <- slopes_all %>%
+  filter(variable %in% c("Nₑ", "NT", "Nₑ/NT", "T", "Vk.", "T/Vk.", "Lτ", 
+                       "SSDɢτ", "SSDɢτ/Nα", "Nα"))
+slopes_order_chosen_var$slope <- round(slopes_order_chosen_var$slope, digits = 2)
+slopes_order_chosen_var$variable <- factor(slopes_order_chosen_var$variable, 
+                levels=c("NT", "Nₑ", "Nₑ/NT", "T", "Vk.", "T/Vk.", "Lτ",
+                         "SSDɢτ", "Nα", "SSDɢτ/Nα"))
+slopes_order_chosen_var$Species <- factor(slopes_order_chosen_var$Species, 
+                                  levels=as.matrix(slopes_order_chosen_var[which(
+                                    slopes_order_chosen_var[,"variable"]=="Nₑ/NT"),"Species"])[order(as.matrix(
+                                    slopes_order_chosen_var[which(slopes_order_chosen_var$variable=="Nₑ/NT"),"slope"]))])
+
+p_heat <- ggplot(slopes_order_chosen_var, aes(x = variable, y = Species, fill = slope_std)) +
+  geom_tile(colour = "white", linewidth = 0.6) +
+  geom_text(aes(label = paste0(signif(slope, 2), ifelse(response=="responsive", "***", ""))), size = 3, colour = "grey15", fontface="bold") +
+  scale_fill_gradient2(low = "#2166AC", mid = "grey97", high = "brown", midpoint = 0,
+                       limits = c(-1, 1), name = "Slope\n(scaled within\nvariable,\ncapped)") +
+  scale_y_discrete(limits = rev) +
+  labs(x = NULL, y = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(panel.grid = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.background = element_rect(fill = "white", colour = NA))
+ggsave(p_heat, file = paste0(PATHOUT, "/heatmap_slopes_thetaF1.png"),
+       width = 7, height = 6, dpi = 300, device = ragg::agg_png, bg = "white")
+}
 
 #### PLOT AGE DIMENSION ------------------
+
+## loading the dataset of traits averaged over cohorts Time1 to Time2, and reorganised to remove age=0, add reassign natural mortality as add mortality, and estimate natural mortality
+data_variables <- load_trait_df(base_path = base_path, pathout=pathoutputRDATA, FORCE)
+
+CLEAN = F
+#### DATASETS clean ------------------------
+# CLEAN DATASET OF TRAITS VARIABLES
+data_variables <- when_variables_missing_age_dim(data_variables)
+data_variables <- what_ages_have_null_dead_nb(data_variables)
+if (CLEAN){
+  data_variables <- when_null_or_low_abund(dataset=data_variables)
+  data_variables <- data_variables[which(data_variables$Fstart == 1),]
+}
+
+
+# CLEAN DATASET OF TRAITS PARAMETERS
+data_parameters <- NULL
+min_age = c()
+for (sp in species){
+  cat(sp)
+  
+  ## load and filter data
+  load(file=paste0(pathoutputRDATA, "/Complete_INIT2", sp, ".RData"))
+  data_t = complete$complete_with_age
+  min_age[sp] <- min(as.numeric(as.matrix(data_t[which(data_t$variable=="survivorship_curve"), "age"])), na.rm=T)
+  rm(complete)
+  data_t$age <- as.numeric(data_t$age)
+  data_t <- when_variables_missing_age_dim(dataset = data_t)
+  if (CLEAN){
+    data_t <- what_ages_have_null_dead_nb(data_t)
+    data_t <- when_null_or_low_abund(data_t)
+  }
+  data_t$Fmax <- as.factor(data_t$Fmax) 
+  data_t$min_age <- min_age[[sp]]
+  data_t = what_ages_have_null_dead_nb(data_t)
+  
+  ## dataset
+  data <-  data_t %>% filter(Species == sp, Fstart == 1)
+  if (is.null(data_parameters)){ data_parameters <- data 
+  } else data_parameters <- rbind(data_parameters, data)
+}
+
+
+
+
 Age_plot_list = list()
-traits_to_plot <- list(c("Dead", "Deltasquare", "Mtot")
+traits_to_plot <- list(c("Dead", "Deltasquare", "Mtot"), 
+                       c("Dead", "Dead\nDivNumerator_N_alpha", "kx_bar"), 
+                        c("b_rate_sc")#, "b_ratexsurvivorship_curve")
                        # ,
                        # c("Ne_N_alpha", "NT", "Ne_N_alpha\nDivNT", "Numerator_N_alpha"),
                        # c("Ne_N_alpha", "Numerator_N_alpha", "NT")
@@ -584,10 +691,68 @@ traits_to_plot <- list(c("Dead", "Deltasquare", "Mtot")
 
 # select data_parameters
 data_plot_1b <- as_long_if_needed(data_parameters, columns_keep_pivot = 
-                                   colnames(data_parameters)[-which(colnames(data_parameters) %in% c("replicate", "Fmax", "Fstart", "Species", "age"))])
-df_trait_t <- estimateT_Vk(trait_data_full_i = data_plot_1b)
+                                   colnames(data_parameters)[-which(colnames(data_parameters) %in% 
+                                                                      c("replicate", "Fmax", "Fstart", "Species", "age"))])
+tab_rep <- table(data_plot_1b$Fmax, data_plot_1b$age, data_plot_1b$Species)
+tab_rep_all <-NULL
+if (!CLEAN){
+  # Identify the age & Fmax combinations that do not have > 5 replicates 
+  for (i in dimnames(tab_rep)[[3]]){
+    tempo <- data.frame(tab_rep[,,i])
+    colnames(tempo) <- c("Fmax", "age", "replicates") 
+    tempo[, "Species"] <- i
+    if(is.null(tab_rep_all)) {tab_rep_all <- tempo
+    } else tab_rep_all <- rbind(tab_rep_all, tempo)
+  }
+  tab_remove <- tab_rep_all[which(tab_rep_all$replicates<6 & tab_rep_all$replicates>0),]
+  for (s in unique(tab_remove$Species)){
+    tempo <- tab_remove[tab_remove$Species == s, ]
+    data_plot_1b[which((data_plot_1b$Species == s & 
+                          data_plot_1b$Fmax %in% unique(tab_remove$Fmax)) & 
+                         data_plot_1b$age %in% unique(tab_remove$age)), ]
+  }
+  
+  # Identify the age & Fmax combinations that are not realistic => NA
+  data_plot_1b_test <- pivot_wider(data_plot_1b, values_from = "value", names_from = "variable")
+  data_plot_1b_test <- data_plot_1b_test %>% 
+    ungroup()
+  data_plot_1b_abund <- data_plot_1b_test[, c("age", "Fmax", "abundanceByAge", "Species", "replicate")]
+  data_plot_1b_abund <- na.omit(data_plot_1b_abund)
+  tempo_abund_mean <- data_plot_1b_abund %>%
+    group_by(age, Fmax, Species) %>%
+    summarise(mean_abund=mean(abundanceByAge, na.rm=T)) %>%
+    ungroup()
+  tempo_abund_mean <- pivot_wider(tempo_abund_mean, values_from = "mean_abund", names_from = "Fmax")
+  tempo_abund_mean <- tempo_abund_mean[order(tempo_abund_mean$Species),]
+  # tempo_abund_mean[2:nrow(tempo_abund_mean),c("0.5", "0.75", "1", "1.25", "1.5")] <- (tempo_abund_mean[2:nrow(tempo_abund_mean), c("0.5", "0.75", "1", "1.25", "1.5")])/
+  #   tempo_abund_mean[1:c(nrow(tempo_abund_mean)-1), c("0.5", "0.75", "1", "1.25", "1.5")]
+  tempo_abund_mean[,c("0.5", "0.75", "1", "1.25", "1.5")] <- log10(tempo_abund_mean[,c("0.5", "0.75", "1", "1.25", "1.5")])
+    
+  age_remove <- list()
+  for (sp in species[-which(species == "Sandeel")]){
+    for (fmax in c("0.5", "0.75", "1", "1.25", "1.5")){
+      data_sp_fmax <- abs(as.matrix(tempo_abund_mean[which(tempo_abund_mean$Species == sp), which(colnames(tempo_abund_mean) == fmax)]))
+      age_sp_fmax <- as.matrix(tempo_abund_mean[which(tempo_abund_mean$Species == sp), "age"])
+      data_sp_fmax
+      # if (all(!is.na(data_sp_fmax))) next
+      if (all(data_sp_fmax>2, na.rm = T)) next
+      # if (all(data_sp_fmax<0.06, na.rm = T)) next
+      # if (all(data_sp_fmax>0.06, na.rm = T)) next
+      # age_remove[[sp]][[fmax]] <- age_sp_fmax[which(data_sp_fmax<0.06)]
+      age_remove[[sp]][[fmax]] <- age_sp_fmax[which(data_sp_fmax<2)]
+      age_remove[[sp]][[fmax]] <- age_sp_fmax[which(data_sp_fmax<2)]
+      data_plot_1b[which((data_plot_1b$Species == sp & 
+                           data_plot_1b$Fmax == fmax) & 
+                           data_plot_1b$age %in% age_sp_fmax[which(data_sp_fmax<2)]), "value"] <- NA
+    }
+  }
+}
+
+df_trait_t <- estimateX(trait_data_full_i = data_plot_1b, var = paste0("b_rate", "x", "survivorship_curve"))
 data_plot_1b <- rbind(data_plot_1b, df_trait_t)
 
+df_trait_t <- estimateDiv(trait_data_full_i = data_plot_1b, var = paste0("Dead", "\nDiv", "Numerator_N_alpha"))
+data_plot_1b <- rbind(data_plot_1b, df_trait_t)
 # clean dataset
 data_plot_1b <- data_plot_1b %>% filter(variable %in% c(unlist(traits_to_plot), "SSDgx", "survivorship_curve", "Deltasquare", "Dead", "Mtot"))
 
@@ -595,7 +760,8 @@ data_plot_1b <- data_plot_1b %>% filter(variable %in% c(unlist(traits_to_plot), 
 if (nrow(data_plot_1b)<1) next
 
 #loop to plot relative and absolute data
-for (relative_to_ref in c(TRUE)){
+slopes_list <- list()
+for (relative_to_ref in c(T, "proportional")){
   
   cat("\n======>", relative_to_ref)
   # variable for relative or not relative plots
@@ -608,6 +774,10 @@ for (relative_to_ref in c(TRUE)){
   
   # loop to plot each set of traits 
   for (traits_selected in traits_to_plot) {
+    
+    # if (all(CLEAN & traits_selected == "b_rate_sc")) next
+    # if (all(!CLEAN & traits_selected != "b_rate_sc")) next
+    
     cat("\n======>", traits_selected)
     # trait selected
     df_trait_t <- data_plot_1b[which(data_plot_1b$variable %in% traits_selected),]
@@ -631,16 +801,27 @@ for (relative_to_ref in c(TRUE)){
     
     # Use the function to plot
     df_trait_t$Species = factor(levels = improve_sp_names(species[order(species)]), df_trait_t$Species)
-    result <- plot_trait_vs_fmax(df_trait_sp = df_trait_t, trait_name = t, age_dim = T,spec=species_imp[order(species_imp)],
+    result <- plot_trait_vs_fmax(df_trait_sp = df_trait_t, trait_name = t, age_dim = T, spec=species_imp[order(species_imp)],
                                  Time1, Time2, relative_to_ref = relative_to_ref, proportional=proportional,
                                  position_legend = "right", facet = T, subtitle=F, legend_justif="right", 
-                                 nrow=5, ncol=3, per_species_scale = T)
+                                 nrow=5, ncol=3, per_species_scale = T, delta_method = F, scale_z=F)
+    slopes_list[[paste(traits_selected, collapse = "")]] <- result$data %>%
+      dplyr::filter(!is.na(mean)) %>%                        # Fmax effondrés déjà en NA -> exclus
+      dplyr::group_by(Species, variable) %>%
+      dplyr::filter(dplyr::n() >= 3) %>%                     # pente sur au moins 3 valeurs de thetaF
+      dplyr::summarise(
+        slope    = coef(lm(mean ~ Fmax))[2],
+        slope_se = summary(lm(mean ~ Fmax))$coefficients[2, 2],
+        p_value  = summary(lm(mean ~ Fmax))$coefficients[2, 4],
+        n_F      = dplyr::n(),
+        .groups  = "drop")
+    
     df_trait_t2 <- df_trait_t[which(df_trait_t$Species %in% sp_main_imp), ]
     df_trait_t2$Species = factor(levels = improve_sp_names(sp_main), df_trait_t2$Species)
     result2 <- plot_trait_vs_fmax(df_trait_sp = df_trait_t2, trait_name = t, age_dim = T, spec=sp_main_imp,
                                   Time1, Time2, relative_to_ref = relative_to_ref, proportional=proportional,
                                   position_legend = "right", facet = T, subtitle=F, legend_justif="right", 
-                                  nrow=4, ncol=3, per_species_scale = T)
+                                  nrow=4, ncol=3, per_species_scale = T, delta_method = F, scale_z=F)
     
     # save in a list
     Age_plot_list[[paste0(as.character(relative_to_ref), as.character(proportional))]][[paste(species, collapse="")]][[paste(traits_selected, collapse="")]] <- result$plot
@@ -651,7 +832,8 @@ save(Age_plot_list, file=paste0(pathoutputRDATA, "/Age_plots.RData"))
 load(file=paste0(pathoutputRDATA, "/Age_plots.RData"))
 
 
-for (relative_to_ref in c(TRUE)){
+for (relative_to_ref in c(TRUE, "proportional")){
+  
   if (!dir.exists(paste0(PATHOUT, "/Clean_for_paper"))) dir.create(paste0(PATHOUT, "/Clean_for_paper"))
   proportional = FALSE
   if (relative_to_ref == "proportional") {
@@ -670,24 +852,41 @@ for (relative_to_ref in c(TRUE)){
   plot_biom = ifelse(relative_to_ref, "biomassplot", "biomassplot")
   suffix_relative <- plot_name_ch
   
+  if (!CLEAN){
+    windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+    cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/TOTAge_plot", plot_name_ch, ".pdf"),
+              width = 10, height =15, onefile=T)
+    print(Age_plot_list[[plot_name]]$AtlanticHerringAtlanticMackerelSandeelEuropeanSpratNorwayPoutEuropeanPlaiceCommonSoleSaitheAtlanticCodHaddockHorseMackerelWhitingCommonDabGreyGurnardHake$DeadDeltasquareMtot)
+    dev.off() 
+    
+    windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+    cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Age_plot", plot_name_ch, ".pdf"),
+              width = 10, height =12, onefile=T)
+    print(Age_plot_list[[plot_name]]$`WhitingEuropean plaiceAtlantic mackerelHorse mackerel`$DeadDeltasquareMtot)
+    dev.off()   
+    
+    windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+    cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/TOTAge2_plot", plot_name_ch, ".pdf"),
+              width = 10, height =12, onefile=T)
+    print(Age_plot_list[[plot_name]]$AtlanticHerringAtlanticMackerelSandeelEuropeanSpratNorwayPoutEuropeanPlaiceCommonSoleSaitheAtlanticCodHaddockHorseMackerelWhitingCommonDabGreyGurnardHake$`DeadDead\nDivNumerator_N_alphakx_bar`)
+    dev.off()   
+    
+    windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+    cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Age2_plot", plot_name_ch, ".pdf"),
+              width = 10, height =12, onefile=T)
+    print(Age_plot_list[[plot_name]]$`WhitingEuropean plaiceAtlantic mackerelHorse mackerel`$`DeadDead\nDivNumerator_N_alphakx_bar`)
+    dev.off()   
+  }
   
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/TOTAge_plot", plot_name_ch, ".pdf"),
-            width = 10, height =15, onefile=T)
-  print(Age_plot_list[[plot_name]]$AtlanticHerringAtlanticMackerelSandeelEuropeanSpratNorwayPoutEuropeanPlaiceCommonSoleSaitheAtlanticCodHaddockHorseMackerelWhitingCommonDabGreyGurnardHake$DeadDeltasquareMtot)
-  dev.off() 
   
-  windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
-  cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/Age_plot", plot_name_ch, ".pdf"),
-            width = 10, height =12, onefile=T)
-  print(Age_plot_list[[plot_name]]$`WhitingEuropean plaiceAtlantic mackerelHorse mackerel`$DeadDeltasquareMtot)
-  dev.off()   
-  
-  
+  if (!CLEAN){
+    windowsFonts(myCustomWindowsFontName=windowsFont("DejaVu Sans"))
+    cairo_pdf(file = paste0(PATHOUT, "/Clean_for_paper/TOTbx_sc", plot_name_ch, ".pdf"),
+              width = 10, height =12, onefile=T)
+    print(Age_plot_list[[plot_name]]$AtlanticHerringAtlanticMackerelSandeelEuropeanSpratNorwayPoutEuropeanPlaiceCommonSoleSaitheAtlanticCodHaddockHorseMackerelWhitingCommonDabGreyGurnardHake$`b_rate_sc`)
+    dev.off()   
+  }
 }
-
-
-
 
 # 
 # 
@@ -1076,7 +1275,7 @@ for (relative_to_ref in c(TRUE)){
 # data_plot_3w <- data_plot_3w[which(data_plot_3w$Fstart == 1), ]
 # data_plot_3w <- data_plot_3w[which(data_plot_3w$variable %in% c("mean_of_meanWeightByAge_per_age", "mean_of_GonadWeight_per_age", "mean_of_abundanceMature_per_age")), ]
 # data_plot_3w$replicate <- as.character(data_plot_3w$replicate)
-# min_age_mat  <- (data_plot_3[sapply(species, FUN=function(x) {which(data_plot_3$Species==x)[1]}), c("min_age", "Species")])
+# min_age_mat  <- (data_plot_3[sapply(species, function(x) {which(data_plot_3$Species==x)[1]}), c("min_age", "Species")])
 # data_plot_3w<- full_join(data_plot_3w, min_age_mat)
 # data_plot_3 <- rbind(data_plot_3, data_plot_3w)
 # # 
@@ -1416,7 +1615,7 @@ for (relative_to_ref in c(TRUE)){
 # data_plot_5_v <- rbind(data_plot_5_v, df_trait_t)
 # 
 # # add min_age to variables dataset
-# min_age_mat    <- (data_plot_5[sapply(species, FUN=function(x) {which(data_plot_5$Species==x)[1]}), c("min_age", "Species")])
+# min_age_mat    <- (data_plot_5[sapply(species, function(x) {which(data_plot_5$Species==x)[1]}), c("min_age", "Species")])
 # data_plot_5_v  <- full_join(data_plot_5_v, min_age_mat)
 # 
 # # estimate M number

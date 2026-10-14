@@ -465,12 +465,31 @@ when_null_or_low_abund <- function(dataset){
   return(dataset)
 }
 what_ages_have_null_dead_nb <- function(dataset){
-  # remove ages that are not included
+
+  data_tempo <- as.data.frame(dataset)
+  
+  #matrix of lifespan
+  lifespan <- data.frame("lifespan"=as.matrix(get_par(conf = conf, "lifespan")))
+  sp_i     <- data.frame("Species" = as.matrix(get_par(conf=conf, "species.name")))
+  rownames(lifespan) <- stringr::str_remove(rownames(lifespan), "species.lifespan.sp")
+  rownames(sp_i)     <- stringr::str_remove(rownames(sp_i), "species.name.sp")
+  lifespan$sp <- rownames(lifespan)
+  sp_i$sp     <- rownames(sp_i)
+  lifespan <- left_join(lifespan, sp_i)
+  lifespan$Species <- as.character(lifespan$Species)
+  data_tempo <- full_join(data_tempo, lifespan)
+  
+  #identify ages to remove
   dataset$age <- as.numeric(dataset$age)
-  ages_to_remove <- table(dataset[which(dataset$variable == "Dead" & dataset$value ==0),"age"])
-  if (dim(ages_to_remove)>0) ages_to_remove <- ages_to_remove[which(ages_to_remove == max(ages_to_remove))]
+  ages_to_remove <- table(dataset[which(dataset$variable == "Dead" & dataset$value %in% c(0, NA, NaN)),"age"])
+  rows_to_remove <- which(as.numeric(data_tempo$age)>as.numeric(data_tempo$lifespan))
+  
+  #clear ages
+  if (dim(ages_to_remove)>0)    ages_to_remove <- ages_to_remove[which(ages_to_remove == max(ages_to_remove))]
+  if (length(rows_to_remove)>0) dataset <- dataset[-rows_to_remove, ]
   if (any(dataset$age %in% as.numeric(names(ages_to_remove)))) dataset <- dataset[-which(dataset$age %in% as.numeric(names(ages_to_remove))), ]
-  if (any(which(is.na(dataset$age)))) dataset$age[which(is.na(dataset$age))] <- min_age
+  if (any(which(is.na(dataset$age)))) dataset$age[which(is.na(dataset$age))] <- dataset$min_age[which(is.na(dataset$age))]
+  if (any(dataset$age<dataset$min_age)) dataset$age[which(dataset$age<dataset$min_age)] <- dataset$min_age[which(dataset$age<dataset$min_age)] 
   return(dataset)
 }
          

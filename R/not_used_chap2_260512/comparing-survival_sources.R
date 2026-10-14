@@ -10,25 +10,25 @@ library(ggpubr)
 
 # functions and environment 
 main = "New_gpu_conf.R" # config file
-source("osmose-ns-v4.4.1_clim/R/functions/source.R") # load config and key parameters and functions
-source("osmose-ns-v4.4.1_clim/R/functions/functions_key_traits.R") # plots against Fmax
-source("osmose-ns-v4.4.1_clim/R/functions/auxiliary_for_lists.R") # from list to df 
-source("osmose-ns-v4.4.1_clim/R/functions/functions_output_SimuRData_into_df_for_plots.R") # to transform dataset from RData to long df
-source("osmose-ns-v4.4.1_clim/R/functions/function_data_traits_summary.R")
+source("R/functions/source.R") # load config and key parameters and functions
+source("R/functions/functions_plots.R") # plots against Fmax
+source("R/functions/auxiliary_for_lists.R") # from list to df 
+# source("R/functions/functions_output_SimuRData_into_df_for_plots.R") # to transform dataset from RData to long df
+source("R/functions/function_data_traits_summary.R")
 
 # paths
-PATHOUT  = "osmose-ns-v4.4.1_clim/output/PLOTS/KEY_TRAITS/"
+PATHOUT  = "output/PLOTS/KEY_TRAITS/"
 if (!dir.exists(PATHOUT)) dir.create(PATHOUT, recursive = TRUE)
-base_dir <- "osmose-ns-v4.4.1_clim/output/PLOTS/FINAL_Ne_Htz2/INIT"
+base_dir <- "output/PLOTS/FINAL_Ne_Htz2/INIT"
 folders  <- list.dirs(base_dir, recursive = F) # files INIT2 with raw Ne datasets
 
-folders_traits_y <- "osmose-ns-v4.4.1_clim/output/PLOTS/Trait_variables_by_year_BYSP//RData/"
+folders_traits_y <- "output/PLOTS/Trait_variables_by_year_BYSP//RData/"
 folders_traits_y <- list.dirs(folders_traits_y, recursive = F)
-folders_traits_c <- "osmose-ns-v4.4.1_clim/output/PLOTS/Trait_variables_by_cohort/RData/"
+folders_traits_c <- "output/PLOTS/Trait_variables_by_cohort/RData/"
 folders_traits_c  <- list.dirs(folders_traits_c, recursive = F)
-folders_traits_y_a <- "osmose-ns-v4.4.1_clim/output/PLOTS/Trait_variables_by_year_by_age2/RData/"
+folders_traits_y_a <- "output/PLOTS/Trait_variables_by_year_by_age2/RData/"
 folders_traits_y_a <- list.dirs(folders_traits_y_a, recursive = F)
-folders_traits_c_a <- "osmose-ns-v4.4.1_clim/output/PLOTS/Trait_variables_by_cohort_by_age2/RData/"
+folders_traits_c_a <- "output/PLOTS/Trait_variables_by_cohort_by_age2/RData/"
 folders_traits_c_a  <- list.dirs(folders_traits_c_a, recursive = F)
 
 # load or format dataset
@@ -42,13 +42,13 @@ species_df=species
 
 
 
-pathout <- paste0("osmose-ns-v4.4.1_clim/output/PLOTS/Trait_variables_by_cohort_by_age2/otherplots")
+pathout <- paste0("output/PLOTS/Trait_variables_by_cohort_by_age2/otherplots")
 if (!dir.exists(pathout)) dir.create(pathout, recursive = T)
 
 # load dataset
 data_complete_sp = NULL
 data_complete_c = NULL
-base_path = "osmose-ns-v4.4.1_clim/output/PLOTS/Trait_variables_by_cohort_by_age2"
+base_path = "output/PLOTS/Trait_variables_by_cohort_by_age2"
 folder_name <- basename(base_path)
 suffix <- gsub("Trait_variables_by_", "", folder_name)
 suffix <- gsub("_", "_", suffix)  # keep underscores
@@ -88,8 +88,8 @@ colnames(data_complete_c)
 Time1=150
 Time2=160
 
-PATHOUT  = "osmose-ns-v4.4.1_clim/output/PLOTS/KEY_TRAITS/"
-path <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/osmose-ns-v4.4.1_clim/output/PLOTS/FINAL_Ne_Htz2")
+PATHOUT  = "output/PLOTS/KEY_TRAITS/"
+path <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/output/PLOTS/FINAL_Ne_Htz2")
 
 
 ### produce dataset reading multiple .RData to make 1 dataframe, stored as a .RData file ----------
@@ -99,8 +99,8 @@ FORCE=F
 combined_plot =list()
 Time1=150
 Time2=160
-PATHOUT  = "osmose-ns-v4.4.1_clim/output/PLOTS/KEY_TRAITS/"
-path <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/osmose-ns-v4.4.1_clim/output/PLOTS/FINAL_Ne_Htz2")
+PATHOUT  = "output/PLOTS/KEY_TRAITS/"
+path <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/output/PLOTS/FINAL_Ne_Htz2")
 plot_Abund_age = list()
 for (sp in species){
   cat(sp)

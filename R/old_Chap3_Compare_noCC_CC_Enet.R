@@ -154,7 +154,7 @@ for (Scenario in c("Chap2", "Chap3")){
   if (Scenario == "Chap2") main = "New_gpu_conf.R" #config file
   if (Scenario == "Chap3") main = "New_gpu_conf_RCP.R" #config file
   source(paste0(here::here(), "/R/functions/source.R")) #load config and key parameters and functions
-  source(paste0(here::here(), "/R/functions/functions_plots.R")) #plots against Fmax
+  source(paste0(here::here(), "/R/functions/functions_key_traits.R")) #plots against Fmax
   
   # prepare environment
   Ne_NT2 = NULL 
@@ -203,6 +203,7 @@ for (Scenario in c("Chap2", "Chap3")){
 
 ## ORGANISATION Ne DATA ---------
 
+Ne_NT_tot2        <- Ne_NT_tot2[-which(Ne_NT_tot2$NT < 100), ] 
 Ne_NT_tot2$Ne_NT  <- Ne_NT_tot2$Ne_N_alpha/Ne_NT_tot2$NT 
 Ne_NT_tot2$'T/Vk' <- Ne_NT_tot2$generation_length/Ne_NT_tot2$Vk_point 
 
@@ -233,14 +234,14 @@ ggplot(ggplotdata, aes(sample=value))+
 
 
 
-# 
+# transform dataset for 
 dataset_clean_Ne <- pivot_wider(dataset_clean_Ne, names_from = "variable", values_from = "value")# summarize 
-dataset_clean_Ne <- dataset_clean_Ne %>%
-  group_by(Species, Scenario) %>%
-  summarize(across(c(`Ne_N_alpha`, `Ne_NT`, NT,
+dataset_clean_Ne <- dataset_clean_Ne %>% 
+  group_by(Species, Scenario) %>% 
+  summarize(across(c(`Ne_N_alpha`, `Ne_NT`, NT, 
                      `Numerator_N_alpha`, Vk_point, `generation_length`,
-                     `T/Vk`),
-                   list(sd = sd, mymean = mean))) %>%
+                     `T/Vk`), 
+                   list(sd = sd, mymean = mean))) %>% 
   ungroup
 colnames(dataset_clean_Ne) <- improve_vriable_names(colnames(dataset_clean_Ne))
 colnames(dataset_clean_Ne) <- stringr::str_remove(colnames(dataset_clean_Ne), pattern = "_mymean")
@@ -408,31 +409,11 @@ for (enet_dimension in names(list_Enet_data)){
   
 
   ### REGRESSION DATA_NE ~ DATA_ENET*Scenario   ------
-   ### focus on the DIFF between CC and No CC scenarios: using the delta method
+   ### focus on the DIFF between CC and No CC scenarios
   
   df_diff_Enet_scrio <- dataset_clean_Ne_Enet
   df_diff_Enet_scrio <- pivot_longer(df_diff_Enet_scrio, names_to = "variable", values_to = "value", cols = -c("Species", "Scenario"))
   df_diff_Enet_scrio <- pivot_wider(df_diff_Enet_scrio, names_from = "Scenario", values_from = "value")
-  df_diff_Enet_scrio_sum <- df_diff_Enet_scrio %>%
-    group_by(Species, variable) %>%                       # <- adapt to your grouping columns
-    summarise(
-      mu_x  = mean(`With CC`, na.rm = TRUE),
-      var_x = var(`With CC`,  na.rm = TRUE),
-      n_x   = sum(!is.na(`With CC`)),
-      mu_y  = mean(`No CC`,   na.rm = TRUE),
-      var_y = var(`No CC`,    na.rm = TRUE),
-      n_y   = sum(!is.na(`No CC`)),
-      .groups = "drop"
-    ) %>%
-    mutate(
-      # Expectation (2nd-order Taylor), Cov = 0 because scenarios are independent
-      diff    = sign(mu_y) * (mu_x / mu_y - 1 + mu_x * var_y / mu_y^3),
-      # Between-replicate variability (delta method, consistent with your SDs)
-      sd_diff = sqrt(var_x / mu_y^2 + mu_x^2 * var_y / mu_y^4),
-      # Uncertainty on the mean response (use this instead if you want a SE / CI)
-      se_diff = sqrt((var_x / n_x) / mu_y^2 + mu_x^2 * (var_y / n_y) / mu_y^4)
-    )
-  
   df_diff_Enet_scrio$diff <- (df_diff_Enet_scrio$`With CC` - df_diff_Enet_scrio$`No CC`)/abs(df_diff_Enet_scrio$`No CC`)
   dataset_clean_Ne_Enet_diff <- pivot_wider(df_diff_Enet_scrio[, -which(colnames(df_diff_Enet_scrio) %in% c("No CC", "With CC"))], names_from="variable", values_from="diff")
   

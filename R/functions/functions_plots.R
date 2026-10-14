@@ -28,7 +28,7 @@ relative_diff_second_derivate_f <- function(Fmax, mean_Fmax_ref, mean_Fmax_i, wr
 
 # Delta method to estimate the standard deviation of the relative difference of response to fishing mortality when independent replicates
 # + Esperance to estimate the mean of the relative difference of response to fishing mortality when independent replicates
-value_to_sd_esperance_delta_method <- function(dataset_w_value,  # migariane.github.io/DeltaMethodEpiTutorial.nb.html
+value_to_sd_esperance_delta_method_relative <- function(dataset_w_value,  # migariane.github.io/DeltaMethodEpiTutorial.nb.html
                                                var_x, h = 1e-6){
   dataset_mean_sd <- NULL
   for (Fmax_i in names(table(dataset_w_value$Fmax))){
@@ -465,9 +465,8 @@ improve_parm_names <- function(vector){
 }
 
 improve_vriable_names <- function(vector, age=F){
-  vector <- stringr::str_replace(vector, pattern="b_rate_sc", replacement = "Birth rate (scaled)")  
   vector <- stringr::str_replace(vector, pattern="mean_of_abundanceMature_per_age", replacement = "Nmat_\u03C4")
-  vector <- stringr::str_replace(vector, pattern="Mtot", replacement = "Mortality rate\u03C4")
+  vector <- stringr::str_replace(vector, pattern="Mtot", replacement = "M\u03C4")
   vector <- stringr::str_replace(vector, pattern="abundanceByAge", replacement = "Abundance")
   vector <- stringr::str_replace(vector, pattern="mean_of_meanWeightByAge_per_age", replacement = "Individual weight")
   vector <- stringr::str_replace(vector, pattern="SSDgx_Mpred", replacement = "Predation SSD\u0262 (\u0394²Dead_Pred)")
@@ -476,6 +475,7 @@ improve_vriable_names <- function(vector, age=F){
   vector <- stringr::str_replace(vector, pattern="SSDgx_Mnat", replacement = "Natural SSD\u0262 (\u0394²Dead_Natural)")
   vector <- stringr::str_replace(vector, pattern="Numerator_N_alpha", replacement = "N\u03B1")
   vector <- stringr::str_remove(vector, pattern="x")      
+  vector <- stringr::str_replace(vector, pattern="b_rate_sc", replacement = "bx'")  
   vector <- stringr::str_replace(vector, pattern="Delta", replacement = "\u0394")
   vector <- stringr::str_replace(vector, pattern="square", replacement = "²\u03C4")
   vector <- stringr::str_replace(vector, pattern="\nDiv", replacement = "/")
@@ -510,13 +510,16 @@ improve_vriable_names <- function(vector, age=F){
   vector <- stringr::str_replace(vector, pattern="T/Vk.", replacement = "T/Vk")
   vector <- stringr::str_replace(vector, pattern="T/Vk", replacement = "T/Vk.")
   vector <- stringr::str_replace(vector, pattern="eggNumber", replacement = "egg number_\u03C4")
-  vector <- stringr::str_replace(vector, pattern="Dead", replacement = "Dead\u03C4")
-  vector <- stringr::str_replace(vector, pattern="SSDg/Nα", replacement = "(SSD\u0262/N\u03B1)\u03C4") # ((\u0394²Dead/N\u03B1)\u03C4)
-  vector <- stringr::str_replace(vector, pattern="SSDg", replacement = "SSD\u0262,\u03C4") #((\u0394\u03C4²Dead)\u03C4)
+  vector <- stringr::str_replace(vector, pattern="SSDg/Nα", replacement = "SSD\u0262\u03C4/N\u03B1") # ((\u0394²Dead/N\u03B1)\u03C4)
+  vector <- stringr::str_replace(vector, pattern="SSDg", replacement = "SSD\u0262\u03C4") #((\u0394\u03C4²Dead)\u03C4)
   vector <- stringr::str_replace(vector, pattern="T_Vk", replacement = "T/Vk.")
   vector <- stringr::str_replace(vector, pattern="Ne_NT", replacement = "Ne/NT")
+  vector <- stringr::str_replace(vector, pattern="survival_rate", replacement = "sx")
+  vector <- stringr::str_replace(vector, pattern="Dead", replacement = "D\u03C4")
+  vector <- stringr::str_replace(vector, pattern="k_bar", replacement = "k\u03C4")
   # vector <- expression(vector)
-  if(age)   vector <- stringr::str_replace(vector, pattern="\u03C4", replacement = "_x")
+  if(age)   vector <- stringr::str_replace(vector, pattern="\u03C4", replacement = "x")
+  if(age)   vector <- stringr::str_replace(vector, pattern="L", replacement = "l")
   return(vector)
 }
 
@@ -545,20 +548,13 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
                                scale_facet="free",
                                chosen_title=NULL, subtitle=NULL,legend_justif="inside",
                                position_legend="auto", ncol=2, nrow=2, facet=T, scale_z = T, 
-                               per_species_scale = F) {
+                               per_species_scale = F, delta_method=T) {
   
   plot_name_ch=c()
   plot_name <- paste0(as.character(relative_to_ref), as.character(proportional))
   if (plot_name=="TRUEFALSE") plot_name_ch <- c("Relative ")
   if (plot_name=="FALSEFALSE") plot_name_ch <- c("")
   if (plot_name=="FALSETRUE") plot_name_ch <- c("Proportional ")
-  
-  if (age_dim & any(sapply(df_trait_sp$variable, FUN = function(x) (all(is.na(df_trait_sp$age[which(df_trait_sp$variable == x)])))))) {
-    v_null <- df_trait_sp$variable[which(sapply(df_trait_sp$variable, FUN = function(x) {
-      (all(is.na(df_trait_sp$age[which(df_trait_sp$variable == x)])))
-    }))]
-    df_trait_sp <- df_trait_sp[-which(df_trait_sp$variable == v_null),]
-  }
   
   var_x <- c("Fmax")
   if (age_dim) var_x <- c("Fmax", "age")
@@ -575,7 +571,6 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
   if ("Fstart" %in% colnames(df_trait_sp)) df_trait_sp_F$Fstart <- as.numeric(df_trait_sp_F$Fstart)
   if (any(is.infinite(df_trait_sp_F$value))) df_trait_sp_F <- df_trait_sp_F[-which(is.infinite(df_trait_sp_F$value)), ]
   
-  
   # ---------------------------------------------------------------------------
   #  PANELS BY SPECIES
   # sec_axis() applies a single transformation to all facets: with
@@ -585,25 +580,61 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
   # assembled using patchwork. A species thus has the same axes in all the
   # figures.
   # ---------------------------------------------------------------------------
-  if (facet && per_species_scale && relative_to_ref && !age_dim &&
+  nvar <- length(table(df_trait_sp_F$variable))
+  if (facet & per_species_scale &  #!age_dim &&
       length(unique(df_trait_sp_F$Species)) > 1) {
+    data_sp <- list() # store relative values non rescaled per sp
     panels <- lapply(spec, function(s) {
+      cat(s)
+      # browser()
       res <- plot_trait_vs_fmax(df_trait_sp = df_trait_sp_F[df_trait_sp_F$Species == s, ],
                                 trait_name = trait_name, Time1 = Time1, Time2 = Time2,
                                 relative_to_ref = relative_to_ref, proportional = proportional,
                                 spec = s, age_dim = age_dim, sp_dim = sp_dim,
                                 reference_input = reference_input, FORCElm = FORCElm,
                                 scale_facet = scale_facet, subtitle = FALSE,
-                                position_legend = position_legend, facet = FALSE,
-                                scale_z = scale_z, per_species_scale = FALSE)
+                                position_legend = position_legend, facet = ifelse(nvar>1 & age_dim, T, F),
+                                scale_z = scale_z, per_species_scale = FALSE, 
+                                delta_method=delta_method, 
+                                ncol=ifelse(nvar>1, nvar, ncol), nrow=ifelse(nvar>1 & age_dim, 1, nrow))
       if (is.null(res$plot)) return(NULL)
-      res$plot +
-        facet_wrap(~Species) +                # nom de l'espèce en bandeau
-        labs(title = NULL, subtitle = NULL) +
-        theme(strip.background = element_blank(),
-              strip.text = element_text(size = 10),
-              axis.title = element_blank())   # titres d'axes communs, ajoutés plus bas
+      if (nvar>1 & age_dim){
+        p <- res$plot[[1]] +
+          facet_wrap(~Species*variable, scale="free") +                # nom de l'espèce en bandeau
+          labs(title = NULL, subtitle = NULL) +
+          theme(strip.background = element_blank(),
+                strip.text = element_text(size = 10),
+                axis.title = element_blank())   # titres d'axes communs, ajoutés plus bas
+      }      
+      if (nvar==1 || !age_dim){
+        p <- res$plot +
+          facet_wrap(~Species, scale="free") +                # nom de l'espèce en bandeau
+          labs(title = NULL, subtitle = NULL) +
+          theme(strip.background = element_blank(),
+                strip.text = element_text(size = 10),
+                axis.title = element_blank())   # titres d'axes communs, ajoutés plus bas
+      }
+      p
     })
+    data_sp <- lapply(spec, function(s) {
+      cat(s)
+      # browser()
+      res <- plot_trait_vs_fmax(df_trait_sp = df_trait_sp_F[df_trait_sp_F$Species == s, ],
+                                trait_name = trait_name, Time1 = Time1, Time2 = Time2,
+                                relative_to_ref = relative_to_ref, proportional = proportional,
+                                spec = s, age_dim = age_dim, sp_dim = sp_dim,
+                                reference_input = reference_input, FORCElm = FORCElm,
+                                scale_facet = scale_facet, subtitle = FALSE,
+                                position_legend = position_legend, facet = ifelse(nvar>1, T, F),
+                                scale_z = scale_z, per_species_scale = FALSE, 
+                                delta_method=delta_method, 
+                                ncol=ifelse(nvar>1, nvar, ncol), nrow=ifelse(nvar>1, 1, nrow))
+      if (is.null(res$plot)) return(NULL)
+      data_sp[[s]] <- res$data
+      return(res$data)
+    })
+    
+    if (age_dim) ncol = ncol/nvar
     names(panels) <- spec
     panels <- panels[!sapply(panels, is.null)]
     # titres d'axes communs (on les récupère sur un panneau)
@@ -627,7 +658,8 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
               legend.title = element_blank(),
               legend.box.background = element_rect(colour = "black"))
     })
-    return(list(plot = unname(p_list), scale = NA))
+    return(list(plot = unname(p_list), scale = NA,
+                data = dplyr::bind_rows(data_sp))) 
   }
   
   # ---------------------------------------------------------------------------
@@ -644,7 +676,9 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     if (any(is.na(df_trait_sp_F$value))) df_trait_sp_F <- df_trait_sp_F[-which(is.na(df_trait_sp_F$value)), ]
   }
   
-  # proportional: log(X/Y), the logarithm of the value proportional to the reference (Fmax = 1)
+  # proportional: 
+  # => case 1: X/Y, the value proportional to the reference (Fmax = 1)
+  # => case 2: log(X/Y), the logarithm of the value proportional to the reference (Fmax = 1)
   # Replicates are independent across fishing scenarios: no pairing.
   # We compare the MEANS per scenario (mean, SE = sd/sqrt(n)) with those for Fmax = 1,
   # and the SEs are combined as for two independent samples.
@@ -654,33 +688,58 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
       group_by(across(all_of(group_cols))) %>%
       summarise(m  = mean(value, na.rm = TRUE),
                 se = sd(value, na.rm = TRUE)/sqrt(sum(!is.na(value))),
+                s  = sd(value, na.rm = TRUE)/sqrt(sum(!is.na(value))),
                 .groups = "drop")
     # reference: same species, Fstart, variable (and age if age_dim), at Fmax = 1
     ref_data_percent <- df_mean_se %>%
       filter(as.numeric(as.character(Fmax)) == 1) %>%
       dplyr::select(-Fmax) %>%
       dplyr::rename(m_ref = m, se_ref = se)
-    df_trait_sp_F_mean_sd <- df_mean_se %>%
-      left_join(ref_data_percent, by = setdiff(group_cols, "Fmax"), relationship = "many-to-one") %>%
-      mutate(is_log = grepl("^log", variable),
-             mean = ifelse(is_log, m - m_ref,
-                           log(m / m_ref) + 0.5*(-se^2/m^2 + se_ref^2/m_ref^2)),
-             sd   = ifelse(is_log, sqrt(se^2 + se_ref^2),
-                           sqrt(se^2/m^2 + se_ref^2/m_ref^2))) %>%
-      dplyr::select(all_of(group_cols), mean, sd)
+    if (delta_method) {
+      cat("delta method")
+      if (any(grepl("^log", df_mean_se$variable))){
+        df_trait_sp_F_mean_sd <- df_mean_se %>%
+          left_join(ref_data_percent, by = setdiff(group_cols, "Fmax"), relationship = "many-to-one") %>%
+          mutate(is_log = grepl("^log", variable),
+                 mean = ifelse(is_log, m - m_ref,
+                               log(m / m_ref) + 0.5*(-se^2/m^2 + se_ref^2/m_ref^2)),
+                 sd   = ifelse(is_log, sqrt(se^2 + se_ref^2),
+                               sqrt(se^2/m^2 + se_ref^2/m_ref^2))) %>%
+          dplyr::select(all_of(group_cols), mean, sd)
+      } else{
+        df_trait_sp_F_mean_sd <- df_mean_se %>%
+          left_join(ref_data_percent, by = setdiff(group_cols, "Fmax"), relationship = "many-to-one") %>%
+          mutate(
+            mean = (m / m_ref) * (1 + (se_ref^2 / m_ref^2)),
+            sd   = sqrt(se^2 / m_ref^2 + (m^2 * se_ref^2) / m_ref^4) 
+          ) %>%
+          dplyr::select(all_of(group_cols), mean, sd)
+      }
+    } else {
+      cat("no delta method")
+      ref_data_percent <- df_trait_sp_F %>%
+        filter(as.numeric(as.character(Fmax)) == 1) %>%
+        dplyr::select(-Fmax) %>%
+        dplyr::rename(ref = value) %>%
+        ungroup()
+      df_trait_sp_F_mean_sd <- df_trait_sp_F %>%
+        left_join(ref_data_percent, by = c(setdiff(group_cols, "Fmax"), "replicate", "min_age"), relationship = "many-to-one")%>%
+        mutate(proportional = value/ref) %>%
+        group_by(across(all_of(group_cols))) %>%
+        summarise(mean  = mean(proportional, na.rm = TRUE),
+                  sd    = sd(proportional, na.rm = TRUE),
+                  .groups = "drop")
+    }
+    
     is_ref <- as.numeric(as.character(df_trait_sp_F_mean_sd$Fmax)) == 1
-    df_trait_sp_F_mean_sd$mean[is_ref] <- 0
-    df_trait_sp_F_mean_sd$sd[is_ref]   <- 0
+    df_trait_sp_F_mean_sd$mean[is_ref] <- 1
+    df_trait_sp_F_mean_sd$sd[is_ref]   <- 1
     if (any(is.nan(df_trait_sp_F_mean_sd$mean)))
       warning("proportional : moyenne <= 0 dans une variable non loguée -> NaN")
   }
   
   if (relative_to_ref){
-    # mean and sd of the relative response to fishing mortality 
-    df_trait_sp_F_mean_sd <- value_to_sd_esperance_delta_method(dataset_w_value = df_trait_sp_F, var_x = var_x)
-    # missing_colnames <- colnames(df_trait_sp_F)[-which(colnames(df_trait_sp_F) %in% colnames(df_trait_sp_F_mean_sd))]
-    # if (all(sapply(spec, FUN = function(x) {length(table(df_trait_sp_F$age[which(df_trait_sp_F$Species == x)]))})==1)) missing_colnames<-missing_colnames[-which(missing_colnames == "age")]
-    # missing_colnames<-missing_colnames[-which(missing_colnames == "replicate")]
+    df_trait_sp_F_mean_sd <- value_to_sd_esperance_delta_method_relative(dataset_w_value = df_trait_sp_F, var_x = var_x)
   }
   
   if (!proportional & !relative_to_ref){
@@ -712,27 +771,32 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
   # voire la confiance qu'on a dans cette moyenne (IC95 = t_(19,0.975) SE = 2.093 SD/sqrt(20) = 0.468 SD). 
   # L'utilisation de l'IC95 serait plus rigoureuse statistiquement pour la comparaison à la valeur 0 que 
   # l'écart type et en plus moins conservative (puisqu'environ moitié de la SD) de sorte qu'on récupèrerait vraisemblablement des espèces supplémentaires avec une réponse (herring, common dab, sandeel au moins). 
-  se_divisor <- ifelse(relative_to_ref == T, 1, sqrt(20))
-  df_trait_sp_F_mean_sd <- df_trait_sp_F_mean_sd %>%
-    mutate(IC_95 = qt(0.975, df = 20 - 1) * sd / se_divisor)   # qt(0.975, 19) = 2.093
-
+  if (!any(grepl("se", colnames(df_trait_sp_F_mean_sd)))){ 
+    se_divisor <- ifelse(relative_to_ref == T, 1, sqrt(20))
+    df_trait_sp_F_mean_sd <- df_trait_sp_F_mean_sd %>%
+      mutate(IC_95 = qt(0.975, df = 20 - 1) * sd / se_divisor)   # qt(0.975, 19) = 2.093
+  }
   # Normalize types for plotting and factor ordering.
   df_trait_sp_F_mean_sd$Fstart   = as.factor(df_trait_sp_F_mean_sd$Fstart)
   df_trait_sp_F_mean_sd[,var_x[1]]  = as.numeric(as.matrix(df_trait_sp_F_mean_sd[,var_x[1]]))
   if (length(var_x)>=2) df_trait_sp_F_mean_sd[,var_x[2]]  = as.numeric(as.matrix(df_trait_sp_F_mean_sd[,var_x[2]]))
   
   # remove the Fmax for which species abundance collapsed
-  for(sp in spec) {
-    Fmax_coll <- Fmax_remove_collapses(sp)
-    if (!all(is.na(Fmax_coll))) {
-      id_coll <- which(df_trait_sp_F_mean_sd$Fmax %in% Fmax_coll)
-      if ("Species" %in% colnames(df_trait_sp_F_mean_sd)) {
-        id_coll <- intersect(id_coll, which(df_trait_sp_F_mean_sd$Species == sp))
+  if (delta_method){
+    for(sp in spec) {
+      Fmax_coll <- Fmax_remove_collapses(sp)
+      if (!all(is.na(Fmax_coll))) {
+        id_coll <- which(df_trait_sp_F_mean_sd$Fmax %in% Fmax_coll)
+        if ("Species" %in% colnames(df_trait_sp_F_mean_sd)) {
+          id_coll <- intersect(id_coll, which(df_trait_sp_F_mean_sd$Species == sp))
+        }
+        df_trait_sp_F_mean_sd[id_coll, "mean"]  <- NA
+        df_trait_sp_F_mean_sd[id_coll, "IC_95"] <- NA
       }
-      df_trait_sp_F_mean_sd[id_coll, "mean"]  <- NA
-      df_trait_sp_F_mean_sd[id_coll, "IC_95"] <- NA
-    }
+    } 
   }
+  # data for output
+  data_unscaled <- df_trait_sp_F_mean_sd
   
   # what variable have scale y axis and which ones have scale secondary axis?
   scale = 1
@@ -767,6 +831,9 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
   }  
   if (all(trait_name == c("log(T/(Vk.+2))", "log(Nα/NT)", "log(Nₑ/NT)")))  {
     var_scale_regular = c("log(T/(Vk.+2))", "log(Nα/NT)")
+  }
+  if (all(trait_name == c("Deadx", "Δ²x", "Mortality ratex")))  {
+    var_scale_regular = c("Deadx", "Δ²x", "Mortality ratex")
   }
   range=0
   if (length(var_scale_regular) == length(trait_name)) var_scale_regular <- NULL
@@ -892,6 +959,11 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
   df_trait_sp_F_mean_sd$variable <- as.factor(df_trait_sp_F_mean_sd$variable)
   df_trait_sp_F_mean_sd$variable <- factor(df_trait_sp_F_mean_sd$variable)
   
+  # verify scale is not too large and is not crushing the plot
+  data_tempo <- na.omit(df_trait_sp_F_mean_sd$mean)
+  if (any(is.infinite(data_tempo))) data_tempo <- data_tempo[-which(is.infinite(data_tempo))]
+  scale_truncated <- any(data_tempo>10)
+  
   if (length(spec)>1) df_trait_sp_F_mean_sd$Species <- factor(df_trait_sp_F_mean_sd$Species, levels=spec)
   if (length(var_x) == 1) {
     # remove the variables that have only one age class or NAs in the ssdg sums for instance
@@ -912,6 +984,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
       y_axis_name = name_y,
       z_axis_name = z_axis
     )
+
     p <- ggplot(df_trait_sp_F_mean_sd, aes(x = .data[[var_x]], y = mean,
                 group = interaction(variable, Fmax))) +
       geom_errorbar(aes(ymin=mean-IC_95, ymax=mean+IC_95, group = .data[[shape_var]], color= .data[[shape_var]]
@@ -1040,8 +1113,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
         nlevels(df_trait_sp_F_mean_sd[[var_x[1]]]))) +
       theme_bw() +
       labs(shape = c(""), colour=improve_parm_names("Fmax"))+
-      geom_hline(col="grey", linetype="dotted", lwd=0.8, alpha=0.4, yintercept=0)+
-      geom_hline(col="grey", linetype="dotted", lwd=0.8, alpha=0.4, yintercept=inv_scale_function(0, scale = scale, shift = shift))+
+      # geom_hline(col="grey", linetype="dotted", lwd=0.8, alpha=0.4, yintercept=inv_scale_function(0, scale = scale, shift = shift))+
       # facet_wrap(~Fstart, labeller = Fstart_names) +
       labs(
         # title = title,
@@ -1063,12 +1135,12 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
             legend.box.background = element_rect(colour = "black"), 
             legend.key = element_rect(colour = NA))
     
-    if (length(levels(df_trait_sp_F_mean_sd$variable))==1) {
-      p <- p + 
-        guides(colour=FALSE) + 
-        geom_point(size=3, colour="black") +
-        geom_line(colour="black")
-    }
+    # if (length(levels(df_trait_sp_F_mean_sd$variable))==1) {
+    #   p <- p + 
+    #     guides(colour=FALSE) + 
+    #     geom_point(size=3, colour="black") +
+    #     geom_line(colour="black")
+    # }
     if (!(z_axis == "")){
       p <- p+
         scale_y_continuous(
@@ -1079,14 +1151,33 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
         )
     }
     
+    if (proportional) {
+      p <- p +       geom_hline(col="grey", linetype="dotted", lwd=0.8, alpha=0.4, yintercept=1)
+        # if (scale_truncated && !facet) p <- p + scale_y_break(c( 
+        # max(df_trait_sp_F_mean_sd$mean[-which(df_trait_sp_F_mean_sd$mean >10)]), 
+        # max(df_trait_sp_F_mean_sd$mean)-1))      
+      # if (scale_truncated && !facet) 
+      data_tempo <- na.omit(df_trait_sp_F_mean_sd$mean)
+      if (any(is.infinite(data_tempo))) data_tempo <- data_tempo[-which(is.infinite(data_tempo))]
+      if (any(data_tempo>10)) data_tempo <- data_tempo[-which(data_tempo>10)]
+      if (facet == F){
+        p <- p + ylim(c( 
+          min(data_tempo), 
+          max(data_tempo)
+        ))
+      }
+    }
+    
+    if (relative_to_ref) p <- p +    geom_hline(col="grey", linetype="dotted", lwd=0.8, alpha=0.4, yintercept=0)
+    
     if (all(legend_pos !=c(1,0.5)) || (facet & legend_justif=="inside")) {
       p <- p+
         theme(legend.position = legend_justif,
               legend.position.inside = legend_pos,
               legend.spacing.y = unit(0, "mm")) 
     }
-    
-    if (length(table(df_trait_sp_F_mean_sd$Species))>1 & facet==T){
+    class_p <- class(p)
+    if (length(table(df_trait_sp_F_mean_sd$Species))>1 & facet==T & !(c("list") %in% class_p) ){
       p_list=list()
       for (i in 1:ceiling(c((length(t)*length(spec))/(ncol*nrow)))){
         cat(i)
@@ -1100,7 +1191,7 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
     }
     
     if (length(table(df_trait_sp_F_mean_sd$Species))==1 &
-      length(table(df_trait_sp_F_mean_sd$variable))>1 & facet==T){
+      length(table(df_trait_sp_F_mean_sd$variable))>1 & facet==T & (c("list") %in% class_p)){
       p_list=list()
       for (i in 1:ceiling(c((length(spec))/(ncol*nrow)))){
         p_list[[i]] <-  p[[i]]+
@@ -1110,6 +1201,18 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
       }
       p <- p_list
       if (all(legend_pos !=c(1,0.5)) & legend_justif =="inside") p <- p+ theme(legend.box = "horizontal")
+    }
+    if (length(table(df_trait_sp_F_mean_sd$Species))==1 &
+        length(table(df_trait_sp_F_mean_sd$variable))>1 & facet==T & !(c("list") %in% class_p)){
+      p_list=list()
+      for (i in 1:ceiling(c((length(spec))/(ncol*nrow)))){
+        p_list[[i]] <-  p+
+          facet_wrap_paginate(~variable,nrow = nrow, ncol=ncol,drop=FALSE, scales = scale_facet, page=i)+
+          theme(legend.position = "top", 
+                legend.direction = "horizontal")
+      }
+      p <- p_list
+      # if (all(legend_pos !=c(1,0.5)) & legend_justif =="inside") p <- p + theme(legend.box = "horizontal")
     }
     # if (relative_to_ref == T | proportional == T){
     #   p <- p + 
@@ -1122,7 +1225,8 @@ plot_trait_vs_fmax <- function(df_trait_sp, trait_name, Time1, Time2,
   }
   
   # Return both the ggplot object and the applied scaling factor.
-  return(list(plot = p, scale = scale_factor))
+  return(list(plot = p, scale = scale_factor, # [CORRIGÉ] renvoyait 'scale' (toujours 1)
+              data = data_unscaled))            # [AJOUT] valeurs tracées, à l'échelle réelle
 }
 
 
