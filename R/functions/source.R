@@ -23,7 +23,7 @@ source(file = paste0(here::here(), "/R/functions/auxiliary_for_lists.R"))
 # 0. OSMOSE configuration -------------------------------------------------
 
 version    = "4.4.1"
-javaPath   = "C:/Users/name_author/Documents/osmose/osmose-private/inst/java"
+javaPath   = "C:/Users/mbeneat/Documents/osmose/osmose-private/inst/java"
 jarFile    = file.path(javaPath, sprintf("osmose-%s-jar-with-dependencies.jar", version))
 
 # 1. Model Configuration --------------------------------------------------

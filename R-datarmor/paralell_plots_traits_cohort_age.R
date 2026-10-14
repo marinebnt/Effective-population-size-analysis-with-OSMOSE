@@ -12,10 +12,10 @@ source("R-datarmor/Other_variables_calculations_and_plots.R")
 source("R/functions/source.R")
 
 
-# path_in <- c("C:/Users/name_author/Documents/osmose/Ne_on_NT_with_F/osmose-ns/osmose-ns-v4.4.1_clim/output/old/test")
+# path_in <- c("C:/Users/mbeneat/Documents/osmose/Ne_on_NT_with_F/osmose-ns/osmose-ns-v4.4.1_clim/output/old/test")
 # path_in <- c("Y:/outputs-meso-marine")
 path_in <- c("/home/datawork-marbec-scenlab/OSMOSE/Marine/SIMU_Ne_on_NT_with_climate_change_FIN")
-path_in = c("/home1/datawork/name_author/SIMU_Ne_on_NT_with_F_FIN")
+path_in = c("/home1/datawork/mbeneat/SIMU_Ne_on_NT_with_F_FIN")
 simu_name = "Ne_on_NT_with_climate_change_enet"
 simu_name = "Ne_on_NT_with_F_enet"
 with_progress({
