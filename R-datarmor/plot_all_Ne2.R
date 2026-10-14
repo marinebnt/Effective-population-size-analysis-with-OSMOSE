@@ -29,7 +29,7 @@ plot_all_Ne2 <- function(SP){
   # ncohort = years
   
   pathout <- paste0(configDir, "/output/PLOTS/All_clean_genetic_drift_indicators")
-  pathout <- paste0("/home1/scratch/mbeneat/output/PLOTS/FINAL_Ne_Htz_mature")
+  pathout <- paste0("/home1/scratch/mbeneat/output/PLOTS/Ne_NT_calculated_variables")
   
   if (removing_senescence_param)  pathout <- paste0(pathout, "_noSenescence")
 

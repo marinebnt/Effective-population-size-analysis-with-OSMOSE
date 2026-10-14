@@ -1,4 +1,4 @@
-#* beneat marine
+#* MB
 #* 29/08/25
 #* from osmose restart to a matrix of the number of mature individuals by age by time step
 

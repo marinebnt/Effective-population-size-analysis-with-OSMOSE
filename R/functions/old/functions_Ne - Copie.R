@@ -1,5 +1,5 @@
 # equations to estimate Ne --------------------
-# marine beneat
+# MB
 # 11/06/25
 # based on Waples et al 2025
 

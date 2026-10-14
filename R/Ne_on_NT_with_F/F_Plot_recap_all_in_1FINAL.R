@@ -20,7 +20,7 @@ source("R/functions/function_data_traits_summary.R") # datasets preparation & lo
 source("R/functions/functions_plots.R") # plots 
 
 # paths
-# path <- paste0(simu_repo, "/output/PLOTS/FINAL_Ne_Htz_mature_short/")
+# path <- paste0(simu_repo, "/output/PLOTS/Ne_NT_calculated_variables_short/")
 # PATHOUT  = "output/PLOTS/Ne_on_NT_with_F/KEY_TRAITS_MATURE_removed0_harmo_T_Vk_Nalpha/"
 PATHOUT  = "output/PLOTS/Ne_on_NT_with_F/KEY_TRAITS_MATURE_removed0inNedata/"#KEY_TRAITS_MATURE_150-150/"
 if (!dir.exists(PATHOUT)) dir.create(PATHOUT, recursive = TRUE)
@@ -28,13 +28,13 @@ if (!dir.exists(paste0(PATHOUT, "/Clean_for_paper"))) dir.create(paste0(PATHOUT,
 pathoutputRDATA = paste0(PATHOUT, "RDATA")
 if(!dir.exists(pathoutputRDATA)) dir.create(pathoutputRDATA, recursive = T)
 base_path = paste0("output/DATASETS/Ne_on_NT_with_F/Trait_variables_by_cohort_by_age2")
-base_path = paste0("output/DATASETS/Ne_on_NT_with_F/Trait_variables_by_cohort_by_age_withWbyAge/")
+base_path = paste0("output/DATASETS/Ne_on_NT_with_F/Other_variables/")
 # folders_long <- list.dirs(paste0(path_long, "INIT"), recursive = F)
 
 folders_traits_c <- paste0("output/DATASETS/Ne_on_NT_with_F/Trait_variables_by_cohort/RData/")
 folders_traits_c  <- list.dirs(folders_traits_c, recursive = F)
 folders_traits_c_a <- paste0("output/DATASETS/Ne_on_NT_with_F/Trait_variables_by_cohort_by_age/RData/")
-folders_traits_c_a <- paste0("output/DATASETS/Ne_on_NT_with_F/Trait_variables_by_cohort_by_age_withWbyAge/RData/")
+folders_traits_c_a <- paste0("output/DATASETS/Ne_on_NT_with_F/Other_variables/RData/")
 folders_traits_c_a  <- list.dirs(folders_traits_c_a, recursive = F)
 
 #### DATASETS load or format dataset ------------------------
@@ -48,9 +48,9 @@ dataset="data_parameters"
 sp_main = (c("Whiting", "EuropeanPlaice", "AtlanticMackerel", "HorseMackerel"))
 sp_main_imp = improve_sp_names(sp_main)
 
-## % activate if needed : will produce .RData files in the folder paste0(simu_repo, "/output/PLOTS/FINAL_Ne_Htz_mature/")
+## % activate if needed : will produce .RData files in the folder paste0(simu_repo, "/output/PLOTS/Ne_NT_calculated_variables/")
 ## % 1 file per species, with the dataset at the scale of the cohorts, starting at age = alpha (first mature age)
-dataset_Ne_mean_cohorts(species, FORCE, pathdata=paste0("output/DATASETS/Ne_on_NT_with_F/FINAL_Ne_Htz_mature/"),
+dataset_Ne_mean_cohorts(species, FORCE, pathdata=paste0("output/DATASETS/Ne_on_NT_with_F/Ne_NT_calculated_variables/"),
 pathout=pathoutputRDATA, Time2, Time2)
 
 ## loading the dataset of traits averaged over cohorts Time1 to Time2, and reorganised to remove age=0, add reassign natural mortality as add mortality, and estimate natural mortality

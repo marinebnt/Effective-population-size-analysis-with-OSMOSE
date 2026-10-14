@@ -1,6 +1,6 @@
 # equations to estimate temporal Ne --------------------
 # based on Marty et al 2014 and Waples 1989
-# marine beneat
+# MB
 # 11/06/25
 
 

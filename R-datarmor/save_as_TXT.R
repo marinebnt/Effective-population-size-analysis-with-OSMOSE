@@ -1,6 +1,6 @@
 # create a .txt file per cohort, as input for AgeNe
 # 05/09/25
-# marine beneat
+# MB
 
 
 
