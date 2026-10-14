@@ -1,6 +1,6 @@
 # setwd("X:/osmose-ns")
 
-plot_all_Ne2 <- function(SP){
+Ne_variables_calculations_and_plots <- function(SP){
   
   # INITIALISATION
   repo        = "Simu_LONG"

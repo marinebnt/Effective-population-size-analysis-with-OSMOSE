@@ -15,6 +15,6 @@ source("osmose-ns-v4.4.1_clim/R/functions/source.R")
 with_progress({
   p <- progressor(along = SP)    # create a progressor function with length = length(SP)
   res <- future_lapply(SP, function(sp) {
-    plot_all_Ne2(sp)             # your function
+    Ne_variables_calculations_and_plots(sp)             # your function
   })
 })

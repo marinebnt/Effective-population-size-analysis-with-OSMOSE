@@ -8,7 +8,7 @@ SP = c("AtlanticHerring",  "AtlanticMackerel", "Sandeel",  "EuropeanSprat", "Nor
        "EuropeanPlaice", "CommonSole", "Saithe", "AtlanticCod", "Haddock",  "HorseMackerel",
        "Whiting",  "CommonDab", "GreyGurnard", "Hake")
 main = "New_gpu_conf.R"
-source("R-datarmor/PLOT_trait_replicates_cohorts_age.R")
+source("R-datarmor/Other_variables_calculations_and_plots.R")
 source("R/functions/source.R")
 
 
