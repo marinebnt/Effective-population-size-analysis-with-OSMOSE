@@ -1,4 +1,4 @@
-# Effective (*N~e~*) and census (*N~T~*) population sizes responses to fishing in 15 North Sea fish species, simulated with OSMOSE.
+# Effective and census population sizes responses to fishing in 15 North Sea fish species, simulated with OSMOSE.
 
 #                Analysis and figure scripts.
 
