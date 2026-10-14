@@ -11,9 +11,9 @@ plot_all_Ne2 <- function(SP){
                                " Fstart=", c(rep(0.5, 5),rep(0.75, 5),rep(1, 5),rep(1.25, 5),rep(1.5, 5)))
   
   
-  path_in <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/osmose-ns-v4.4.1_clim/output/test")
+  path_in <- c("C:/Users/mbeneat/Documents/osmose/Ne_on_NT_with_F/osmose-ns/osmose-ns-v4.4.1_clim/output/test")
   # path_in <- c("Y:/outputs-meso-marine")
-  path_in <- c("/home1/datawork/mbeneat/SIMU_CHAP2_FIN")
+  path_in <- c("/home1/datawork/mbeneat/SIMU_Ne_on_NT_with_F_FIN")
   list_d <- list.dirs(path = path_in, recursive = F, full.names = T)
   
   # for the test : has to be erased when real launch

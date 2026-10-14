@@ -15,7 +15,7 @@ plot_all_Ne2 <- function(SP){
   
   path_in <- c("output/DATASETS/old")
   path_in <- c("C:/Users/mbeneat/Documents/ZAutres/simu_test")
-  path_in <- c("/home1/datawork/mbeneat/SIMU_CHAP2_FIN")
+  path_in <- c("/home1/datawork/mbeneat/SIMU_Ne_on_NT_with_F_FIN")
   list_d <- list.dirs(path = path_in, recursive = F, full.names = T)[1]
   # for the test : has to be erased when real launch
   # nb_sp = 7

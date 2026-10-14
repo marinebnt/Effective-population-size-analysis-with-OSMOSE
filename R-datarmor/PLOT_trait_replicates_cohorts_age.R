@@ -2,10 +2,10 @@
 PLOT_trait_replicates2 <- function(SP, Time1=150, Time2=160, path_in, simu_name){
 
 # setwd("X:/osmose-ns")
-if (grepl(simu_name, pattern= "Chap3")) {
+if (grepl(simu_name, pattern= "Ne_on_NT_with_climate_change")) {
     main = "New_gpu_conf_RCP.R"
     term = "$"} 
-if (grepl(simu_name, pattern= "Chap2")) {
+if (grepl(simu_name, pattern= "Ne_on_NT_with_F")) {
     main = "New_gpu_conf.R"
     term = ".R"}
 

@@ -8,7 +8,7 @@ multip_name = "y"
 multipliers = c(1,0.5,0.75,1.25,1.5)
 
 
-path_in <- c("C:/Users/mbeneat/Documents/osmose/Chap2/osmose-ns/osmose-ns-v4.4.1_clim/output/test")
+path_in <- c("C:/Users/mbeneat/Documents/osmose/Ne_on_NT_with_F/osmose-ns/osmose-ns-v4.4.1_clim/output/test")
 # path_in <- c("Y:/outputs-meso-marine")
 # path_in <- c("/home1/datawork/mbeneat/outputs-meso-marine")
 list_d <- list.dirs(path = path_in, recursive = F, full.names = T)
