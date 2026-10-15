@@ -15,14 +15,16 @@ This repository contains the R scripts used to process OSMOSE simulation outputs
 - The first section is about OSMOSE simulations and the version of the configurations used per simulation. This section also includes the extraction of the simultions outputs from the supercomputer we used, to produce light RData files, easily transferable.
 
   - This section includes the following files and folders:
+ 
+    - `prepare_scenarios_for_simulations` (from the initial configuration: writes the configuration to simulate the different fishing scenarios).
 
     - `list_of_simu_F.txt` (list of the simulations launched, all the fishing scenarios tested).
-
+   
     - `new_config_Fmax_Fstart` (folder with all the configuration files called by `list_of_simu_F.txt`).
 
     - `RESTART` (needed for OSMOSE simulations).
 
-    - `R-datarmor` (folder with all the scripts used on the calculation machine).
+    - `R-datarmor` (folder with all the scripts used on the calculation machine, which also calls functions from `R/functions`).
 
     - `output/DATASETS` (folder with all the datasets extracted from the supercomputer - datasets were compressed to fit Github size requirements).
 
