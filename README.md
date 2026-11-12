@@ -34,4 +34,4 @@ This repository contains the R scripts used to launch OSMOSE simulation. It also
 
 ### Bibliography
 Morell, A., Shin, Y.-J., Barrier, N., Travers-Trolet, M., Halouani, G., & Ernande, B. (2023). Bioen-OSMOSE: A bioenergetic marine ecosystem model with physiological response to temperature and oxygen. Progress in Oceanography, 216, 103064. https://doi.org/10.1016/j.pocean.2023.103064 
-Waples, R. S., Do, C., & Chopelet, J. (2011). Calculating *N* <sub>e<sub> and *N* <sub>e<sub> / *N* in age-structured populations: A hybrid Felsenstein-Hill approach. *Ecology*, *92*(7), 1513–1522. <https://doi.org/10.1890/10-1796.1>
+Waples, R. S., Do, C., & Chopelet, J. (2011). Calculating *N<sub>e<sub>* and *N<sub>e<sub>*/*N<sub>T<sub>* in age-structured populations: A hybrid Felsenstein-Hill approach. *Ecology*, *92*(7), 1513–1522. <https://doi.org/10.1890/10-1796.1>
