@@ -57,12 +57,10 @@ estimate_Ne <- function(outputDir_Ne, data_Ne_shape, species, nb_rep, input_dir,
       }
     }
 
+    # remove abundance before maturity
     for (rep in 1:nb_rep){
       abund <- data_Ne_shape2[[sp]][["abundanceByAge"]][[paste0("rep_", rep)]]
       egg   <- data_Ne_shape2[[sp]][["eggNumber"]][[paste0("rep_", rep)]]
-      # cat(egg[1, 10:20], "\n")
-      # cat(egg[2, 10:20], "\n")
-      # cat(egg[3, 10:20], "\n")
       if (any(abund>0 & egg!=0)) {        
         id_not_remove  <- which(abund>0 & egg!=0, arr.ind = T)
         mean_age_abund <- mean(id_not_remove[,"row"], na.rm=T)

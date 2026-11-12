@@ -166,7 +166,8 @@ data_traits_summary <- function(base_path, pathout) {
 ## RAW Ne & associated variables, dimensions : cohort, age, replicate, Fstart, Fmax, Species
 ### produce dataset reading multiple .RData to make 1 dataframe, stored as a .RData file ----------
 
-dataset_Ne_mean_cohorts <- function(species, FORCE, pathdata, pathout, Time1, Time2){
+dataset_Ne_mean_cohorts <- function(species, FORCE, pathdata, pathout, Time1, Time2, 
+                                    dataset = "data_Ne"){
   
   base_dir <- paste0(pathdata, "INIT")
   folders  <- list.dirs(paste0(here::here(), "/", base_dir), recursive = F) # files INIT2 with raw Ne datasets
@@ -175,6 +176,8 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, pathdata, pathout, Time1, Ti
   name_out = ifelse(dataset=="data_Ne", "Complete_INIT2", "Complete_INIT2_raw")
   
   for (f_i in folders){ # 374,362
+    if (!grepl(pattern = "Fstart1_", f_i)) next
+    
     cat(f_i, "\n")
     
     Fmax   <- as.numeric(stringr::str_split(stringr::str_split(f_i, pattern="Fmax")[[1]][2], pattern="_Fstart")[[1]][1])
@@ -189,7 +192,7 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, pathdata, pathout, Time1, Ti
     rm(INIT2)
     
     for (sp in names(dataNe)[1]){
-      if (file.exists(paste0(pathout, "/", name_out, sp_i, ".RData")) && FORCE !=T){
+      if (file.exists(paste0(pathout, "/", name_out, sp, ".RData")) && FORCE !=T){
         next
       }else{
         
@@ -271,6 +274,7 @@ dataset_Ne_mean_cohorts <- function(species, FORCE, pathdata, pathout, Time1, Ti
             f_i_sp_d$Fmax <- as.numeric(stringr::str_split(stringr::str_split(f_i, pattern="Fmax")[[1]][2], pattern="_Fstart")[[1]][1])
             f_i_sp_d$Fstart <- as.numeric(stringr::str_split(stringr::str_split(f_i, pattern="Fstart")[[1]][2], pattern="_sp")[[1]][1])
             
+            #if (dataset != "data_Ne" && any(na.omit(f_i_sp_d$value)==0)) f_i_sp_d[(which(f_i_sp_d$value==0)), "value"] <- NA  
             if (any(na.omit(f_i_sp_d$value)==0)) f_i_sp_d[(which(f_i_sp_d$value==0)), "value"] <- NA
             
             # mean of the cohorts : arithmetic or harmonic
@@ -378,10 +382,11 @@ load_trait_df <- function(base_path, pathout, FORCE=F, removeage0=T){
      data_complete_c$Fstart <- as.numeric(unlist(stringr::str_split(data_complete_c$Fish_press, " Fstart"))[seq(2, 2*length(data_complete_c$Fish_press), by=2)])
      data_complete_c <- data_complete_c[,-which(colnames(data_complete_c) == "Fish_press")]
    }
-   if (!("TRAIT" %in% colnames(data_complete_c))) 
-     {data_complete_c <- pivot_longer(data = data_complete_c, names_to = "TRAIT", values_to = "value", 
+   if (!("TRAIT" %in% colnames(data_complete_c))) {
+     data_complete_c <- pivot_longer(data = data_complete_c, names_to = "TRAIT", values_to = "value", 
                                    cols=-colnames(data_complete_c)[which(colnames(data_complete_c) %in% 
-                                                                c("Fstart", "Fmax", "Species", "age", "replicate"))])}
+                                                                c("Fstart", "Fmax", "Species", "age", "replicate"))])
+   }
    
    # changing colnames to match expectations
    colnames(data_complete_c)[which(colnames(data_complete_c) == "TRAIT")] <- "variable"
