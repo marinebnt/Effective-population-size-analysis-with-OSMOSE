@@ -4,15 +4,15 @@
 
 ### About
 
-R scripts to analyse effective (*N~e~*) and census (*N~T~*) population sizes and the *N~e~/N~T~* ratio under varying fishing pressure for 15 North Sea fish species, using outputs of the multispecies eco-genetic model OSMOSE.
+R scripts to analyse effective (*N<sub>e<sub>*) and census (*N<sub>T<sub>*) population sizes and the *N<sub>e<sub>*/*N<sub>T<sub>* ratio under varying fishing pressure for 15 North Sea fish species, using outputs of the multispecies eco-genetic model OSMOSE.
 
 ### Background
 
-This repository contains the R scripts used to launch OSMOSE simulation. It also includes the scripts used to process the simulations' outputs of the manuscript **Genetic drift can increase faster than abundance declines in harvested fish: insights from a multispecies ecosystem model**. We examine how effective population size (*N~e~*), census population size (*N~T~*), the *N~e~/N~T~* ratio and the components of *N~e~* respond to a gradient of fishing pressure (*θ~F~*) across 15 North Sea fish species. *N~e~* is estimated with the Hill–Felsenstein framework, and its drivers are decomposed following Waples et al. (2011): generation length (*T*), variance in reproductive success (*V~k.~*) and longevity (*L~T~*).
+This repository contains the R scripts used to launch OSMOSE simulation. It also includes the scripts used to process the simulations' outputs of the manuscript **Genetic drift can increase faster than abundance declines in harvested fish: insights from a multispecies ecosystem model**. We examine how effective population size (*N<sub>e<sub>*), census population size (*N<sub>T<sub>*), the *N<sub>e<sub>*/*N<sub>T<sub>* ratio and the components of *N<sub>e<sub>* respond to a gradient of fishing pressure (*θ<sub>F<sub>*) across 15 North Sea fish species. *N<sub>e<sub>* is estimated with the Hill–Felsenstein framework, and its drivers are decomposed following Waples et al. (2011): generation length (*T*), variance in reproductive success (*V<sub>k.<sub>*) and longevity (*L<sub>T<sub>*).
 
 ### This folder is separated in two sections:
 
-- The first section is about OSMOSE simulations and the configuration versions used for each simulation. For each species, we simulated the change in its fishing coefficient *θ~F~*, and replicated the simulation 20 times. This section also includes the extraction of the simultions outputs from the supercomputer we used, to produce light RData files, easily transferable:
+- The first section is about OSMOSE simulations and the configuration versions used for each simulation. For each species, we simulated the change in its fishing coefficient *θ<sub>F<sub>*, and replicated the simulation 20 times. This section also includes the extraction of the simultions outputs from the supercomputer we used, to produce light RData files, easily transferable:
  
     - `R-datarmor/prepare_scenarios_for_simulations` (from the initial configuration: writes the configuration including different fishing scenarios, stored in `new_config_Fmax_Fstart`).
 
@@ -34,4 +34,4 @@ This repository contains the R scripts used to launch OSMOSE simulation. It also
 
 ### Bibliography
 Morell, A., Shin, Y.-J., Barrier, N., Travers-Trolet, M., Halouani, G., & Ernande, B. (2023). Bioen-OSMOSE: A bioenergetic marine ecosystem model with physiological response to temperature and oxygen. Progress in Oceanography, 216, 103064. https://doi.org/10.1016/j.pocean.2023.103064 
-Waples, R. S., Do, C., & Chopelet, J. (2011). Calculating *N* ~e~ and *N* ~e~ / *N* in age-structured populations: A hybrid Felsenstein-Hill approach. *Ecology*, *92*(7), 1513–1522. <https://doi.org/10.1890/10-1796.1>
+Waples, R. S., Do, C., & Chopelet, J. (2011). Calculating *N* <sub>e<sub> and *N* <sub>e<sub> / *N* in age-structured populations: A hybrid Felsenstein-Hill approach. *Ecology*, *92*(7), 1513–1522. <https://doi.org/10.1890/10-1796.1>
